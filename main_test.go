@@ -65,6 +65,28 @@ func TestAdd(t *testing.T) {
 	}
 }
 
+/*func TestUniqueAdd(t *testing.T) {
+	testChunk := cdb.ChunkMaster[Test]{Size: 10, Name: "../a/gas"}
+	testChunk.Init()
+
+	// Add
+	testChunk.Add(Test{Id: 1, A: "A"})
+	testChunk.Add(Test{Id: 1, A: "B"})
+	testChunk.Add(Test{Id: 2, A: "C"})
+	testChunk.Add(Test{Id: 2, A: "D"})
+	if testChunk.TotalElements() != 2 {
+		t.Errorf("Element amount not match")
+	}
+	v, _ := testChunk.FindByIndex(core.SystemIdField, 1)
+	if v.A != "A" {
+		t.Errorf("Unique addot working")
+	}
+	v, _ = testChunk.FindByIndex(core.SystemIdField, 2)
+	if v.A != "C" {
+		t.Errorf("Unique addot working")
+	}
+}*/
+
 func TestDelete(t *testing.T) {
 	testChunk := cdb.ChunkMaster[Test]{Size: 10, Name: "../a/gas"}
 	testChunk.Init()

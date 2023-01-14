@@ -1,14 +1,7 @@
 package cdb
 
-// AddOrReplace value to chunk [toHash] and save it
-func (m *ChunkMaster[T]) AddOrReplace(v T) {
-	if !m.Replace(v) {
-		m.Add(v)
-	}
-}
-
 // Add value to chunk [toHash]
-func (m *ChunkMaster[T]) Add(v T) {
+func (m *ChunkMaster[T]) Add(v T) bool {
 	// Hash
 	hash := m.Hash(v.GetId(), m.Size)
 
@@ -20,22 +13,23 @@ func (m *ChunkMaster[T]) Add(v T) {
 
 	// Add to index map
 	m.ChunkList[hash].AddToIndex(&v)
+	return true
 }
 
-func (m *ChunkMaster[T]) Replace(val T) bool {
+func (m *ChunkMaster[T]) Replace(v T) bool {
 	// Hash
-	hash := m.Hash(val.GetId(), m.Size)
+	hash := m.Hash(v.GetId(), m.Size)
 
 	// Lock and update
 	m.ChunkList[hash].Lock()
 	isChanged := false
-	id := val.GetId()
+	id := v.GetId()
 	replacedList := make([]*T, 0)
 	for i := 0; i < len(m.ChunkList[hash].List); i++ {
 		if m.ChunkList[hash].List[i].GetId() == id {
 			old := m.ChunkList[hash].List[i]
 			replacedList = append(replacedList, &old)
-			m.ChunkList[hash].List[i] = val
+			m.ChunkList[hash].List[i] = v
 			m.ChunkList[hash].IsChanged = true
 			isChanged = true
 			break
@@ -47,9 +41,16 @@ func (m *ChunkMaster[T]) Replace(val T) bool {
 	m.ChunkList[hash].DeleteFromIndex(replacedList)
 
 	// Add new to index
-	m.ChunkList[hash].AddToIndex(&val)
+	m.ChunkList[hash].AddToIndex(&v)
 
 	return isChanged
+}
+
+// AddOrReplace value to chunk [toHash] and save it
+func (m *ChunkMaster[T]) AddOrReplace(v T) {
+	if !m.Replace(v) {
+		m.Add(v)
+	}
 }
 
 /*// Replace value in chunk [toHash] by condition [where]
@@ -92,3 +93,15 @@ func (m *ChunkMaster[T]) DeleteInAll(where func(v *T) bool) {
 	}
 }
 */
+
+func (m *ChunkMaster[T]) Delete(v T) {
+	// Hash
+	hash := m.Hash(v.GetId(), m.Size)
+	m.ChunkList[hash].Delete(v)
+}
+
+func (m *ChunkMaster[T]) DeleteBy(where func(v *T) bool) {
+	for i := 0; i < m.Size; i++ {
+		m.ChunkList[i].DeleteBy(where)
+	}
+}

@@ -2,6 +2,7 @@ package chunk
 
 import (
 	"fmt"
+	"github.com/maldan/go-cdb/core"
 	"github.com/maldan/go-cdb/util"
 	"os"
 	"path/filepath"
@@ -42,9 +43,16 @@ func (c *Chunk[T]) AddToIndex(ref *T) {
 	defer c.Unlock()
 
 	for _, index := range c.IndexList {
-		f := reflect.ValueOf(ref).Elem().FieldByName(index)
-		mapIndex := reflect.ValueOf(f).Interface()
-		strIndex := fmt.Sprintf("%s:%v", index, mapIndex)
+		strIndex := ""
+
+		if index == core.SystemIdField {
+			strIndex = fmt.Sprintf("%s:%v", index, (*ref).GetId())
+		} else {
+			f := reflect.ValueOf(ref).Elem().FieldByName(index)
+			mapIndex := reflect.ValueOf(f).Interface()
+			strIndex = fmt.Sprintf("%s:%v", index, mapIndex)
+		}
+
 		c.indexStorage[strIndex] = append(c.indexStorage[strIndex], ref)
 	}
 }
@@ -55,9 +63,14 @@ func (c *Chunk[T]) DeleteFromIndex(refs []*T) {
 
 	for _, index := range c.IndexList {
 		for i := 0; i < len(refs); i++ {
-			f := reflect.ValueOf(refs[i]).Elem().FieldByName(index)
-			mapIndex := reflect.ValueOf(f).Interface()
-			strIndex := fmt.Sprintf("%s:%v", index, mapIndex)
+			strIndex := ""
+			if index == core.SystemIdField {
+				strIndex = fmt.Sprintf("%s:%v", index, (*refs[i]).GetId())
+			} else {
+				f := reflect.ValueOf(refs[i]).Elem().FieldByName(index)
+				mapIndex := reflect.ValueOf(f).Interface()
+				strIndex = fmt.Sprintf("%s:%v", index, mapIndex)
+			}
 
 			// Create new map
 			lenWas := len(c.indexStorage[strIndex])
