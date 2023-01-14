@@ -1,57 +1,54 @@
-package cmhp_cdb_test
+package cdb_test
 
 import (
 	"fmt"
-	"github.com/maldan/go-cmhp/cmhp_cdb"
+	"github.com/maldan/go-cdb"
 	"testing"
+	"time"
 )
 
 type Test struct {
 	Id    int    `json:"id"`
 	A     string `json:"a"`
 	GasId int    `json:"gasId"`
+
+	FirstName             string `json:"first_name"`
+	LastName              string `json:"last_name"`
+	DateOfBirth           string `json:"date_of_birth"`
+	Age                   int    `json:"age"`
+	Address               string `json:"address"`
+	City                  string `json:"city"`
+	State                 string `json:"state"`
+	ZipCode               string `json:"zip_code"`
+	Email                 string `json:"email"`
+	Phone                 string `json:"phone"`
+	EmergencyPersonName   string `json:"emergency_person_name"`
+	EmergencyPersonPhone  string `json:"emergency_person_phone"`
+	ParentOrLegalGuardian string `json:"parent_or_legal_guardian"`
+	Date                  string `json:"date"`
+	UserId                int    `json:"user_id"`
+	DocumentId            int    `json:"document_id"`
+	ReviewId              int    `json:"review_id"`
+	ReviewEnabled         bool   `json:"review_enabled"`
+
+	Created time.Time `json:"created"`
+}
+
+type Test2 struct {
+	Id int            `json:"id"`
+	Ma map[string]any `json:"ma"`
 }
 
 func (t Test) GetId() any {
 	return t.Id
 }
 
-/*func TestM(t *testing.T) {
-	testChunk := cmhp_cdb.ChunkMaster[Test]{Size: 10, Name: "../a/gas"}
-	testChunk.LoadAll()
-
-	// Add
-	testChunk.Add(Test{Id: 1}, 1)
-	testChunk.Add(Test{Id: 2}, 2)
-	testChunk.Add(Test{Id: 3}, 3)
-	if testChunk.TotalElements() != 3 {
-		t.Errorf("Fuck you")
-	}
-
-	// Delete
-	testChunk.Delete(1, func(t Test) bool {
-		return t.Id == 1
-	})
-	if testChunk.TotalElements() != 2 {
-		t.Errorf("Fuck you")
-	}
-
-	// Test if changed
-	if !testChunk.ChunkList[9].IsChanged {
-		t.Errorf("Chunk must be changed")
-	}
-	if testChunk.ChunkList[3].IsChanged {
-		t.Errorf("Chunk must not be changed")
-	}
-
-	// All
-	if len(testChunk.All()) != 2 {
-		t.Errorf("Fuck you")
-	}
-}*/
+func (t Test2) GetId() any {
+	return t.Id
+}
 
 func TestAdd(t *testing.T) {
-	testChunk := cmhp_cdb.ChunkMaster[Test]{Size: 10, Name: "../a/gas"}
+	testChunk := cdb.ChunkMaster[Test]{Size: 10, Name: "../a/gas"}
 	testChunk.Init()
 
 	// Add
@@ -69,7 +66,7 @@ func TestAdd(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	testChunk := cmhp_cdb.ChunkMaster[Test]{Size: 10, Name: "../a/gas"}
+	testChunk := cdb.ChunkMaster[Test]{Size: 10, Name: "../a/gas"}
 	testChunk.Init()
 
 	// Add
@@ -78,7 +75,7 @@ func TestDelete(t *testing.T) {
 	}
 
 	// Delete
-	testChunk.GetChunkByHash(1).Delete(func(t Test) bool {
+	testChunk.GetChunkByHash(1).DeleteBy(func(t *Test) bool {
 		return t.Id == 1
 	})
 	if testChunk.TotalElements() != 10000-1 {
@@ -86,7 +83,7 @@ func TestDelete(t *testing.T) {
 	}
 
 	// Delete in all
-	testChunk.GetChunkByHash(555).Delete(func(t Test) bool {
+	testChunk.GetChunkByHash(555).DeleteBy(func(t *Test) bool {
 		return t.Id == 555
 	})
 	if testChunk.TotalElements() != 10000-2 {
@@ -106,13 +103,13 @@ func TestDelete(t *testing.T) {
 	if ok {
 		t.Errorf("Delete not working")
 	}
-	_, ok = testChunk.FindInAll(func(t Test) bool {
+	_, ok = testChunk.Find(func(t *Test) bool {
 		return t.Id == 1
 	})
 	if ok {
 		t.Errorf("Delete not working")
 	}
-	_, ok = testChunk.FindInAll(func(t Test) bool {
+	_, ok = testChunk.Find(func(t *Test) bool {
 		return t.Id == 555
 	})
 	if ok {
@@ -121,7 +118,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	testChunk := cmhp_cdb.ChunkMaster[Test]{Size: 10, Name: "../a/gas"}
+	testChunk := cdb.ChunkMaster[Test]{Size: 10, Name: "../a/gas"}
 	testChunk.Init()
 
 	// Add
@@ -147,7 +144,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestFind(t *testing.T) {
-	testChunk := cmhp_cdb.ChunkMaster[Test]{Size: 10, Name: "../a/gas"}
+	testChunk := cdb.ChunkMaster[Test]{Size: 10, Name: "../a/gas"}
 	testChunk.Init()
 
 	// Add
@@ -172,7 +169,7 @@ func TestFind(t *testing.T) {
 	}
 
 	// Find in all
-	v, ok = testChunk.FindInAll(func(t Test) bool {
+	v, ok = testChunk.Find(func(t *Test) bool {
 		return t.Id == 768
 	})
 	if !ok {
@@ -186,7 +183,7 @@ func TestFind(t *testing.T) {
 }
 
 func TestFilter(t *testing.T) {
-	testChunk := cmhp_cdb.ChunkMaster[Test]{Size: 10, Name: "../a/gas"}
+	testChunk := cdb.ChunkMaster[Test]{Size: 10, Name: "../a/gas"}
 	testChunk.Init()
 
 	// Add
@@ -198,7 +195,7 @@ func TestFilter(t *testing.T) {
 	}
 
 	// Find in chunk
-	list := testChunk.FindMany(func(t Test) bool {
+	list := testChunk.FindMany(func(t *Test) bool {
 		return t.Id > 2
 	})
 	if len(list) != 1 {
@@ -207,13 +204,13 @@ func TestFilter(t *testing.T) {
 }
 
 func TestIndex(t *testing.T) {
-	testChunk := cmhp_cdb.ChunkMaster[Test]{Size: 10, Name: "../a/gas", IndexList: []string{"GasId"}}
+	testChunk := cdb.ChunkMaster[Test]{Size: 10, Name: "../a/gas", IndexList: []string{"GasId"}}
 	testChunk.Init()
 
-	testChunk.Add(Test{1, "X", 1})
-	testChunk.Add(Test{2, "Y", 1})
-	testChunk.Add(Test{3, "Z", 2})
-	testChunk.Add(Test{4, "W", 3})
+	testChunk.Add(Test{Id: 1, A: "X", GasId: 1})
+	testChunk.Add(Test{Id: 2, A: "Y", GasId: 1})
+	testChunk.Add(Test{Id: 3, A: "Z", GasId: 2})
+	testChunk.Add(Test{Id: 4, A: "W", GasId: 3})
 
 	l := testChunk.FindManyByIndex("GasId", 2)
 	if len(l) == 0 {
@@ -237,37 +234,22 @@ func TestIndex(t *testing.T) {
 }
 
 func TestIndexProblem(t *testing.T) {
-	testChunk := cmhp_cdb.ChunkMaster[Test]{Size: 10, Name: "../a/gas", IndexList: []string{"GasId"}}
+	testChunk := cdb.ChunkMaster[Test]{Size: 10, Name: "../a/gas", IndexList: []string{"GasId"}}
 	testChunk.Init()
 
-	testChunk.Add(Test{1, "X", 1})
-	testChunk.Add(Test{2, "Y", 1})
-	testChunk.Add(Test{3, "Z", 2})
-	testChunk.Add(Test{4, "W", 3})
+	testChunk.Add(Test{Id: 1, A: "X", GasId: 1})
+	testChunk.Add(Test{Id: 2, A: "Y", GasId: 1})
+	testChunk.Add(Test{Id: 3, A: "Z", GasId: 2})
+	testChunk.Add(Test{Id: 4, A: "W", GasId: 3})
 
-	testChunk.GetChunkByHash(4).Delete(func(t Test) bool { return t.Id == 4 })
+	testChunk.GetChunkByHash(4).DeleteBy(func(t *Test) bool { return t.Id == 4 })
 
 	fmt.Printf("%v\n", testChunk.GetChunkByHash(4).List)
 	fmt.Printf("%v\n", testChunk.FindManyByIndex("GasId", 3)[0])
 }
 
-/*
-func BenchmarkSmart1(b *testing.B) {
-	cm := cmhp_cdb.ChunkMaster[Test]{}
-	for i := 0; i < b.N; i++ {
-		cm.Hash(i, 20)
-	}
-}
-
-func BenchmarkSmart2(b *testing.B) {
-	cm := cmhp_cdb.ChunkMaster[Test]{}
-	for i := 0; i < b.N; i++ {
-		cm.Hash("123", 20)
-	}
-}*/
-
 func BenchmarkFind(b *testing.B) {
-	testChunk := cmhp_cdb.ChunkMaster[Test]{Size: 20, Name: "../a/gas"}
+	testChunk := cdb.ChunkMaster[Test]{Size: 20, Name: "../a/gas"}
 	testChunk.Init()
 
 	for i := 0; i < 100000; i++ {
@@ -282,7 +264,7 @@ func BenchmarkFind(b *testing.B) {
 }
 
 func BenchmarkFindByIndex(b *testing.B) {
-	testChunk := cmhp_cdb.ChunkMaster[Test]{Size: 20, Name: "../a/gas", IndexList: []string{"Id"}}
+	testChunk := cdb.ChunkMaster[Test]{Size: 20, Name: "../a/gas", IndexList: []string{"Id"}}
 	testChunk.Init()
 
 	for i := 0; i < 100000; i++ {
@@ -295,7 +277,7 @@ func BenchmarkFindByIndex(b *testing.B) {
 }
 
 func BenchmarkFindMany(b *testing.B) {
-	testChunk := cmhp_cdb.ChunkMaster[Test]{Size: 20, Name: "../a/gas"}
+	testChunk := cdb.ChunkMaster[Test]{Size: 20, Name: "../a/gas"}
 	testChunk.Init()
 
 	for i := 0; i < 100000; i++ {
@@ -303,14 +285,14 @@ func BenchmarkFindMany(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		testChunk.FindMany(func(t Test) bool {
+		testChunk.FindMany(func(t *Test) bool {
 			return t.Id == i
 		})
 	}
 }
 
 func BenchmarkFindManyByIndex(b *testing.B) {
-	testChunk := cmhp_cdb.ChunkMaster[Test]{Size: 20, Name: "../a/gas", IndexList: []string{"Id"}}
+	testChunk := cdb.ChunkMaster[Test]{Size: 20, Name: "../a/gas", IndexList: []string{"Id"}}
 	testChunk.Init()
 
 	for i := 0; i < 100000; i++ {
@@ -319,6 +301,21 @@ func BenchmarkFindManyByIndex(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		testChunk.FindManyByIndex("Id", i)
+	}
+}
+
+func BenchmarkDelete(b *testing.B) {
+	testChunk := cdb.ChunkMaster[Test]{Size: 20, Name: "../a/gas"}
+	testChunk.Init()
+
+	for i := 0; i < 100000; i++ {
+		testChunk.Add(Test{Id: i + 1})
+	}
+
+	for i := 0; i < b.N; i++ {
+		testChunk.GetChunkByHash(i + 1).DeleteBy(func(t *Test) bool {
+			return t.Id == i
+		})
 	}
 }
 

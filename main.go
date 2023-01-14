@@ -1,8 +1,9 @@
-package cmhp_cdb
+package cdb
 
 import (
 	"fmt"
-	"github.com/maldan/go-cmhp/cmhp_file"
+	"github.com/maldan/go-cdb/chunk"
+	"github.com/maldan/go-cdb/util"
 	"os"
 	"path/filepath"
 	"sync"
@@ -10,6 +11,7 @@ import (
 )
 
 type idAble interface {
+	comparable
 	GetId() any
 }
 
@@ -18,7 +20,7 @@ type ChunkMaster[T idAble] struct {
 	Name          string
 	Size          int
 	AutoIncrement int
-	ChunkList     []Chunk[T]
+	ChunkList     []chunk.Chunk[T]
 	IndexList     []string
 	ShowLogs      bool
 }
@@ -36,14 +38,14 @@ func (m *ChunkMaster[T]) Init() *ChunkMaster[T] {
 	}
 
 	// Read chunk info
-	info, err := cmhp_file.ReadGenericJSON[ChunkMasterAutoIncrement](m.Name + "/counter.json")
+	info, err := util.ReadJson[ChunkMasterAutoIncrement](m.Name + "/counter.json")
 	if err == nil {
 		m.AutoIncrement = info.Counter
 	}
 
 	// Init chunks
 	t := time.Now()
-	m.ChunkList = make([]Chunk[T], m.Size)
+	m.ChunkList = make([]chunk.Chunk[T], m.Size)
 	loadTotal := 0
 	for i := 0; i < m.Size; i++ {
 		m.ChunkList[i].IndexList = m.IndexList
@@ -78,33 +80,9 @@ func (m *ChunkMaster[T]) Save() {
 	}
 }
 
-/*func (m *ChunkMaster[T]) SaveChanged() {
-	for i := 0; i < m.Size; i++ {
-		m.ChunkList[i].SaveIfChanged()
-	}
-}*/
-
-/*func (m *ChunkMaster[T]) SaveChunkByHash(toHash any) {
-	hash := m.Hash(toHash, m.Size)
-	m.ChunkList[hash].Save()
-}*/
-
-// ForEach go over each value in all chunks
-func (m *ChunkMaster[T]) ForEach(fn func(item T) bool) {
-	status := true
-	for i := 0; i < m.Size; i++ {
-		m.ChunkList[i].RLock()
-		for j := 0; j < len(m.ChunkList[i].List); j++ {
-			if !fn(m.ChunkList[i].List[j]) {
-				status = false
-				break
-			}
-		}
-		m.ChunkList[i].RUnlock()
-		if !status {
-			break
-		}
-	}
+func (m *ChunkMaster[T]) GetChunkByHash(valueId any) *chunk.Chunk[T] {
+	hash := m.Hash(valueId, m.Size)
+	return &m.ChunkList[hash]
 }
 
 // GenerateId generate thread safe autoincrement id
@@ -114,7 +92,7 @@ func (m *ChunkMaster[T]) GenerateId() int {
 	m.AutoIncrement += 1
 	out = m.AutoIncrement
 	info := ChunkMasterAutoIncrement{m.AutoIncrement}
-	cmhp_file.Write(m.Name+"/counter.json", &info)
+	util.WriteJson(m.Name+"/counter.json", &info)
 	m.Unlock()
 
 	return out
@@ -130,39 +108,15 @@ func (m *ChunkMaster[T]) TotalElements() int {
 	return count
 }
 
-/*func (m *ChunkMaster[T]) StrHash(str string, max int) int {
-	hash := 0
-	for i := 0; i < len(str); i++ {
-		hash += int(str[i])
-	}
-	return hash % max
-}
+// All Copy all values from list
+/*func (m *ChunkMaster[T]) All() []T {
+	out := make([]T, 0)
 
-func (m *ChunkMaster[T]) IntHash(num int, max int) int {
-	return num % max
-}*/
-
-/*func (m *ChunkMaster[T]) BuildIndexMap() {
-	m.IndexStorage = make(map[string][]*T)
-
-	// Build index
-	for _, index := range m.IndexList {
-		for i := 0; i < m.Size; i++ {
-			for j := 0; j < len(m.ChunkList[i].List); j++ {
-				m.AddIndex(index, &m.ChunkList[i].List[j])
-			}
-		}
-	}
-}
-
-func (m *ChunkMaster[T]) AddIndex(index string, ref *T) {
-	m.Lock()
-	defer m.Unlock()
-
-	f := reflect.ValueOf(ref).Elem().FieldByName(index)
-	mapIndex := reflect.ValueOf(f).Interface()
-	strIndex := fmt.Sprintf("%v:%v", index, mapIndex)
-	m.IndexStorage[strIndex] = append(m.IndexStorage[strIndex], ref)
+	m.ForEach(func(item T) bool {
+		out = append(out, item)
+		return true
+	})
+	return out
 }*/
 
 func (m *ChunkMaster[T]) Hash(x any, max int) int {

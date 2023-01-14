@@ -1,15 +1,18 @@
-package cmhp_cdb
+package chunk
 
 import (
 	"fmt"
-	"github.com/maldan/go-cmhp/cmhp_file"
-	"github.com/maldan/go-cmhp/cmhp_slice"
+	"github.com/maldan/go-cdb/util"
 	"os"
 	"path/filepath"
 	"reflect"
 	"sync"
 	"time"
 )
+
+type idAble interface {
+	GetId() any
+}
 
 type Chunk[T idAble] struct {
 	sync.RWMutex
@@ -45,10 +48,29 @@ func (c *Chunk[T]) AddToIndex(ref *T) {
 	}
 }
 
+func (c *Chunk[T]) DeleteFromIndex(ref *T, where func(v *T) bool) {
+	c.Lock()
+	defer c.Unlock()
+
+	for _, index := range c.IndexList {
+		f := reflect.ValueOf(ref).Elem().FieldByName(index)
+		mapIndex := reflect.ValueOf(f).Interface()
+		strIndex := fmt.Sprintf("%s:%v", index, mapIndex)
+
+		lenWas := len(c.indexStorage[strIndex])
+		newList := make([]*T, 0, lenWas)
+		for i := 0; i < lenWas; i++ {
+			if !where(&c.List[i]) {
+				newList = append(newList, c.indexStorage[strIndex][i])
+			}
+		}
+		c.indexStorage[strIndex] = newList
+	}
+}
+
 func (c *Chunk[T]) Save() {
 	c.Lock()
 	defer c.Unlock()
-	// c.SaveWithoutLock()
 
 	if !c.IsChanged {
 		return
@@ -56,16 +78,16 @@ func (c *Chunk[T]) Save() {
 
 	// Write to disk
 	t := time.Now()
-	err := cmhp_file.Write(c.Name+"/chunk_"+fmt.Sprintf("%v", c.Id)+".json.tmp", &c.List)
+	err := util.WriteJson(c.Name+"/chunk_"+fmt.Sprintf("%v", c.Id)+".json.tmp", &c.List)
 	if err != nil {
 		panic(err)
 	}
 
 	// Delete old
-	cmhp_file.DeleteFile(c.Name + "/chunk_" + fmt.Sprintf("%v", c.Id) + ".json")
+	util.DeleteFile(c.Name + "/chunk_" + fmt.Sprintf("%v", c.Id) + ".json")
 
 	// Replace
-	err = cmhp_file.Rename(c.Name+"/chunk_"+fmt.Sprintf("%v", c.Id)+".json.tmp", c.Name+"/chunk_"+fmt.Sprintf("%v", c.Id)+".json")
+	err = util.Rename(c.Name+"/chunk_"+fmt.Sprintf("%v", c.Id)+".json.tmp", c.Name+"/chunk_"+fmt.Sprintf("%v", c.Id)+".json")
 	if err != nil {
 		panic(err)
 	}
@@ -85,7 +107,7 @@ func (c *Chunk[T]) Load() int {
 	defer c.Unlock()
 
 	t := time.Now()
-	chunk, err := cmhp_file.ReadGenericJSON[[]T](c.Name + "/chunk_" + fmt.Sprintf("%v", c.Id) + ".json")
+	chunk, err := util.ReadJson[[]T](c.Name + "/chunk_" + fmt.Sprintf("%v", c.Id) + ".json")
 	if err != nil {
 		c.List = make([]T, 0)
 		c.IsInit = true
@@ -104,70 +126,32 @@ func (c *Chunk[T]) Load() int {
 	return len(chunk)
 }
 
-// Find value in chunk by [cond]
-func (c *Chunk[T]) Find(cond func(v *T) bool) (T, bool) {
-	c.RLock()
-	defer c.RUnlock()
-
-	for i := 0; i < len(c.List); i++ {
-		if cond(&c.List[i]) {
-			return c.List[i], true
-		}
-	}
-
-	return *new(T), false
-}
-
-// Delete values in chunk by condition [where]
-func (c *Chunk[T]) Delete(where func(v T) bool) {
+// DeleteBy values in chunk by condition [where]
+func (c *Chunk[T]) DeleteBy(where func(v *T) bool) {
 	c.Lock()
-	defer c.Unlock()
 
 	// Filter values
 	lenWas := len(c.List)
-	c.List = cmhp_slice.Filter(c.List, func(i T) bool {
-		return !where(i)
-	})
+	newList := make([]T, 0, lenWas)
+	deletedList := make([]T, 0, 10)
+	for i := 0; i < lenWas; i++ {
+		if !where(&c.List[i]) {
+			newList = append(newList, c.List[i])
+		} else {
+			deletedList = append(deletedList, c.List[i])
+		}
+	}
+	c.List = newList
 
 	// Elements was deletes
 	if lenWas != len(c.List) {
 		c.IsChanged = true
 	}
+
+	c.Unlock()
 }
 
-func (c *Chunk[T]) FindByIndex(indexName string, indexValue any) (T, bool) {
-	c.RLock()
-	defer c.RUnlock()
-
-	strIndex := fmt.Sprintf("%s:%v", indexName, indexValue)
-	for _, val := range c.indexStorage[strIndex] {
-		return *val, true
-	}
-
-	return *new(T), false
-}
-
-func (c *Chunk[T]) FindManyByIndex(indexName string, indexValue any) []T {
-	c.RLock()
-	defer c.RUnlock()
-
-	strIndex := fmt.Sprintf("%s:%v", indexName, indexValue)
-	out := make([]T, 0)
-	for _, val := range c.indexStorage[strIndex] {
-		out = append(out, *val)
-	}
-	return out
-}
-
-// Contains value in chunk by [cond]
-func (c *Chunk[T]) Contains(cond func(v T) bool) bool {
-	c.RLock()
-	defer c.RUnlock()
-
-	for _, item := range c.List {
-		if cond(item) {
-			return true
-		}
-	}
-	return false
+func (c *Chunk[T]) Delete(v T) {
+	id := v.GetId()
+	c.DeleteBy(func(t *T) bool { return (*t).GetId() == id })
 }
