@@ -1,10 +1,8 @@
 package cdb
 
-import "github.com/maldan/go-cdb/util"
-
 // AddOrReplace value to chunk [toHash] and save it
-func (m *ChunkMaster[T]) AddOrReplace(v T, where func(v T) bool) {
-	if !m.Replace(v, where) {
+func (m *ChunkMaster[T]) AddOrReplace(v T) {
+	if !m.Replace(v) {
 		m.Add(v)
 	}
 }
@@ -24,7 +22,37 @@ func (m *ChunkMaster[T]) Add(v T) {
 	m.ChunkList[hash].AddToIndex(&v)
 }
 
-// Replace value in chunk [toHash] by condition [where]
+func (m *ChunkMaster[T]) Replace(val T) bool {
+	// Hash
+	hash := m.Hash(val.GetId(), m.Size)
+
+	// Lock and update
+	m.ChunkList[hash].Lock()
+	isChanged := false
+	id := val.GetId()
+	replacedList := make([]*T, 0)
+	for i := 0; i < len(m.ChunkList[hash].List); i++ {
+		if m.ChunkList[hash].List[i].GetId() == id {
+			old := m.ChunkList[hash].List[i]
+			replacedList = append(replacedList, &old)
+			m.ChunkList[hash].List[i] = val
+			m.ChunkList[hash].IsChanged = true
+			isChanged = true
+			break
+		}
+	}
+	m.ChunkList[hash].Unlock()
+
+	// Delete old from index
+	m.ChunkList[hash].DeleteFromIndex(replacedList)
+
+	// Add new to index
+	m.ChunkList[hash].AddToIndex(&val)
+
+	return isChanged
+}
+
+/*// Replace value in chunk [toHash] by condition [where]
 func (m *ChunkMaster[T]) Replace(val T, where func(v T) bool) bool {
 	// Hash
 	hash := m.Hash(val.GetId(), m.Size)
@@ -42,9 +70,9 @@ func (m *ChunkMaster[T]) Replace(val T, where func(v T) bool) bool {
 		}
 	}
 	return false
-}
+}*/
 
-// DeleteInAll values in all chunks by condition [where]
+/*// DeleteInAll values in all chunks by condition [where]
 func (m *ChunkMaster[T]) DeleteInAll(where func(v *T) bool) {
 	for i := 0; i < m.Size; i++ {
 		m.ChunkList[i].Lock()
@@ -63,3 +91,4 @@ func (m *ChunkMaster[T]) DeleteInAll(where func(v *T) bool) {
 		m.ChunkList[i].Unlock()
 	}
 }
+*/

@@ -130,9 +130,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	// Update
-	testChunk.Replace(Test{Id: 1, A: "gas"}, func(t Test) bool {
-		return t.Id == 1
-	})
+	testChunk.Replace(Test{Id: 1, A: "gas"})
 	if testChunk.TotalElements() != 3 {
 		t.Errorf("Fuck you")
 	}
@@ -245,7 +243,40 @@ func TestIndexProblem(t *testing.T) {
 	testChunk.GetChunkByHash(4).DeleteBy(func(t *Test) bool { return t.Id == 4 })
 
 	fmt.Printf("%v\n", testChunk.GetChunkByHash(4).List)
-	fmt.Printf("%v\n", testChunk.FindManyByIndex("GasId", 3)[0])
+	// fmt.Printf("%v\n", testChunk.FindManyByIndex("GasId", 3)[0])
+}
+
+func TestIndexReplaceProblem(t *testing.T) {
+	testChunk := cdb.ChunkMaster[Test]{Size: 10, Name: "../a/gas", IndexList: []string{"GasId"}}
+	testChunk.Init()
+
+	testChunk.Add(Test{Id: 1, A: "X", GasId: 1})
+	_, ok := testChunk.FindByIndex("GasId", 1)
+	if !ok {
+		t.Errorf("Index not working")
+	}
+	testChunk.Replace(Test{Id: 1, A: "Z", GasId: 1})
+	l := testChunk.FindManyByIndex("GasId", 1)
+
+	if len(l) != 1 {
+		t.Errorf("Index not working")
+	}
+
+	if testChunk.TotalElements() != 1 {
+		t.Errorf("Index not working")
+	}
+
+	// Check
+	a, ok := testChunk.Find(func(x *Test) bool { return x.Id == 1 })
+	if a.A != "Z" {
+		t.Errorf("Index not working")
+	}
+
+	// Check
+	a, ok = testChunk.FindByIndex("GasId", 1)
+	if a.A != "Z" {
+		t.Errorf("Index not working")
+	}
 }
 
 func BenchmarkFind(b *testing.B) {

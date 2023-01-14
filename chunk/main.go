@@ -11,6 +11,7 @@ import (
 )
 
 type idAble interface {
+	comparable
 	GetId() any
 }
 
@@ -48,23 +49,26 @@ func (c *Chunk[T]) AddToIndex(ref *T) {
 	}
 }
 
-func (c *Chunk[T]) DeleteFromIndex(ref *T, where func(v *T) bool) {
+func (c *Chunk[T]) DeleteFromIndex(refs []*T) {
 	c.Lock()
 	defer c.Unlock()
 
 	for _, index := range c.IndexList {
-		f := reflect.ValueOf(ref).Elem().FieldByName(index)
-		mapIndex := reflect.ValueOf(f).Interface()
-		strIndex := fmt.Sprintf("%s:%v", index, mapIndex)
+		for i := 0; i < len(refs); i++ {
+			f := reflect.ValueOf(refs[i]).Elem().FieldByName(index)
+			mapIndex := reflect.ValueOf(f).Interface()
+			strIndex := fmt.Sprintf("%s:%v", index, mapIndex)
 
-		lenWas := len(c.indexStorage[strIndex])
-		newList := make([]*T, 0, lenWas)
-		for i := 0; i < lenWas; i++ {
-			if !where(&c.List[i]) {
-				newList = append(newList, c.indexStorage[strIndex][i])
+			// Create new map
+			lenWas := len(c.indexStorage[strIndex])
+			newList := make([]*T, 0, lenWas)
+			for j := 0; j < lenWas; j++ {
+				if *c.indexStorage[strIndex][j] != *refs[i] {
+					newList = append(newList, c.indexStorage[strIndex][j])
+				}
 			}
+			c.indexStorage[strIndex] = newList
 		}
-		c.indexStorage[strIndex] = newList
 	}
 }
 
@@ -129,16 +133,15 @@ func (c *Chunk[T]) Load() int {
 // DeleteBy values in chunk by condition [where]
 func (c *Chunk[T]) DeleteBy(where func(v *T) bool) {
 	c.Lock()
-
 	// Filter values
 	lenWas := len(c.List)
 	newList := make([]T, 0, lenWas)
-	deletedList := make([]T, 0, 10)
+	deletedList := make([]*T, 0, 10)
 	for i := 0; i < lenWas; i++ {
 		if !where(&c.List[i]) {
 			newList = append(newList, c.List[i])
 		} else {
-			deletedList = append(deletedList, c.List[i])
+			deletedList = append(deletedList, &c.List[i])
 		}
 	}
 	c.List = newList
@@ -147,8 +150,10 @@ func (c *Chunk[T]) DeleteBy(where func(v *T) bool) {
 	if lenWas != len(c.List) {
 		c.IsChanged = true
 	}
-
 	c.Unlock()
+
+	// Clear index
+	c.DeleteFromIndex(deletedList)
 }
 
 func (c *Chunk[T]) Delete(v T) {
