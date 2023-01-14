@@ -1,0 +1,9 @@
+{
+  "name": "@maldan/go-cdb",
+  "version": "0.0.1",
+  "description": "Go Chunk Data Base",
+  "main": "index.js",
+  "keywords": [],
+  "author": "Maldan",
+  "license": "Mit"
+}
