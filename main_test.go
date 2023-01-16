@@ -39,11 +39,11 @@ type Test2 struct {
 	Ma map[string]any `json:"ma"`
 }
 
-func (t Test) GetId() any {
+func (t Test) GetId() int {
 	return t.Id
 }
 
-func (t Test2) GetId() any {
+func (t Test2) GetId() int {
 	return t.Id
 }
 

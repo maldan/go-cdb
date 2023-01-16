@@ -13,7 +13,7 @@ import (
 
 type idAble interface {
 	comparable
-	GetId() any
+	GetId() int
 }
 
 type Chunk[T idAble] struct {

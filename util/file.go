@@ -8,6 +8,19 @@ import (
 	"path/filepath"
 )
 
+func WriteText(path string, d string) error {
+	// Create path for file
+	err := os.MkdirAll(filepath.Dir(path), 0777)
+	if err != nil {
+		return err
+	}
+
+	// Write as json
+	err = ioutil.WriteFile(path, []byte(d), 0777)
+
+	return nil
+}
+
 func WriteJson(path string, v any) error {
 	// Create path for file
 	err := os.MkdirAll(filepath.Dir(path), 0777)
@@ -35,6 +48,15 @@ func ReadJson[T any](path string) (T, error) {
 	err = json.Unmarshal(data, s)
 
 	return *s, err
+}
+
+func ReadText(path string) (string, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), err
 }
 
 func Info(path string) (fs.FileInfo, error) {
