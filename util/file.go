@@ -8,6 +8,19 @@ import (
 	"path/filepath"
 )
 
+func WriteBin(path string, d []byte) error {
+	// Create path for file
+	err := os.MkdirAll(filepath.Dir(path), 0777)
+	if err != nil {
+		return err
+	}
+
+	// Write as json
+	err = ioutil.WriteFile(path, d, 0777)
+
+	return nil
+}
+
 func WriteText(path string, d string) error {
 	// Create path for file
 	err := os.MkdirAll(filepath.Dir(path), 0777)
