@@ -74,13 +74,13 @@ func Pack[T comparable](v *T) []byte {
 	p := 0
 
 	// Start of struct
-	start := uintptr(unsafe.Pointer(v))
+	// start := uintptr(unsafe.Pointer(v))
 
 	// Calculate string size
 	size := info.HeaderSize
 	for i := 0; i < len(info.Type); i++ {
 		if info.Type[i] == _string {
-			bb := *(*[]byte)(unsafe.Pointer(start + info.Offset[i]))
+			bb := *(*[]byte)(unsafe.Pointer(uintptr(unsafe.Pointer(v)) + info.Offset[i]))
 			ln := len(bb)
 			size += ln
 		}
@@ -102,16 +102,16 @@ func Pack[T comparable](v *T) []byte {
 
 		switch info.Type[i] {
 		case _uint8:
-			p += __copy8(&out, p, start, info.Offset[i])
+			p += __copy8(&out, p, uintptr(unsafe.Pointer(v)), info.Offset[i])
 			break
 		case _uint16:
-			p += __copy16(&out, p, start, info.Offset[i])
+			p += __copy16(&out, p, uintptr(unsafe.Pointer(v)), info.Offset[i])
 			break
 		case _uint32:
-			p += __copy32(&out, p, start, info.Offset[i])
+			p += __copy32(&out, p, uintptr(unsafe.Pointer(v)), info.Offset[i])
 			break
 		case _string:
-			p += __copyBigString(&out, p, start+info.Offset[i])
+			p += __copyBigString(&out, p, uintptr(unsafe.Pointer(v))+info.Offset[i])
 			break
 		}
 	}
@@ -126,7 +126,7 @@ func Unpack[T comparable](b *[]byte) T {
 	info := getTypeInfo(out)
 
 	// Start of struct
-	startOfStruct := uintptr(unsafe.Pointer(out))
+	// startOfStruct := uintptr(unsafe.Pointer(out))
 	// startOfBin := uintptr(unsafe.Pointer(b))
 
 	// Read fields number
@@ -153,15 +153,15 @@ func Unpack[T comparable](b *[]byte) T {
 
 		switch vType {
 		case _uint8:
-			*(*uint8)(unsafe.Pointer(startOfStruct + offset)) = (*b)[p]
+			*(*uint8)(unsafe.Pointer(uintptr(unsafe.Pointer(out)) + offset)) = (*b)[p]
 			p += 1
 			break
 		case _uint16:
-			*(*uint16)(unsafe.Pointer(startOfStruct + offset)) = __read16(b, p)
+			*(*uint16)(unsafe.Pointer(uintptr(unsafe.Pointer(out)) + offset)) = __read16(b, p)
 			p += 2
 			break
 		case _uint32:
-			*(*uint32)(unsafe.Pointer(startOfStruct + offset)) = __read32(b, p)
+			*(*uint32)(unsafe.Pointer(uintptr(unsafe.Pointer(out)) + offset)) = __read32(b, p)
 			p += 4
 			break
 		case _string:
@@ -172,7 +172,7 @@ func Unpack[T comparable](b *[]byte) T {
 			// Copy
 			str := make([]byte, strLength)
 			copy(str, (*b)[p:])
-			*(*string)(unsafe.Pointer(startOfStruct + offset)) = string(str)
+			*(*string)(unsafe.Pointer(uintptr(unsafe.Pointer(out)) + offset)) = string(str)
 			p += int(strLength)
 
 			break

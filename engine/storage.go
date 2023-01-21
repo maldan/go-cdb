@@ -3,8 +3,8 @@ package engine
 import (
 	"errors"
 	"fmt"
-	"github.com/maldan/go-cdb/pack"
 	"github.com/maldan/go-cdb/util"
+	"github.com/maldan/go-cmhp/cmhp_byte"
 	"io"
 	"os"
 	"sync"
@@ -41,7 +41,7 @@ func (r *Storage[T]) AddToBuffer(o StorageOperation[T]) {
 
 func PackRecord[T IEngineComparable](v *T) []byte {
 	// Pack struct
-	bytes := pack.Pack[T](v)
+	bytes := cmhp_byte.Pack[T](v)
 	bodyLength := uint32(len(bytes))
 
 	// Record data
@@ -90,7 +90,7 @@ func UnpackRecord[T IEngineComparable](bytes *[]byte) (T, int64, error) {
 	}
 
 	r := (*bytes)[_hStart+_hLen:]
-	out := pack.Unpack[T](&r)
+	out := cmhp_byte.Unpack[T](&r)
 
 	return out, int64(_hStart + _hLen + length + _hEnd), nil
 }

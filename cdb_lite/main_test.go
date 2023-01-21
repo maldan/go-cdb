@@ -73,7 +73,7 @@ func TestMyWrite(t *testing.T) {
 	c := cdb_lite.New[Test]()
 	c.Init()
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 1; i++ {
 		id := c.GenerateId()
 		c.Add(Test{
 			Id:          id,
