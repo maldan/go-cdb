@@ -1,4 +1,4 @@
-package cdb_pack
+package pack
 
 import (
 	"encoding/binary"

@@ -3,7 +3,6 @@ package cdb
 import (
 	"fmt"
 	"github.com/maldan/go-cdb/chunk"
-	"github.com/maldan/go-cdb/core"
 	"github.com/maldan/go-cdb/util"
 	"os"
 	"path/filepath"
@@ -39,7 +38,7 @@ func (m *ChunkMaster[T]) Init() *ChunkMaster[T] {
 	}
 
 	// Inner index for GetId()
-	m.IndexList = append(m.IndexList, core.SystemIdField)
+	m.IndexList = append(m.IndexList, engine.SystemIdField)
 
 	// Read chunk info
 	info, err := util.ReadJson[ChunkMasterAutoIncrement](m.Name + "/counter.json")

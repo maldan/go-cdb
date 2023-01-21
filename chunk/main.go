@@ -2,7 +2,6 @@ package chunk
 
 import (
 	"fmt"
-	"github.com/maldan/go-cdb/core"
 	"github.com/maldan/go-cdb/util"
 	"os"
 	"path/filepath"
@@ -45,7 +44,7 @@ func (c *Chunk[T]) AddToIndex(ref *T) {
 	for _, index := range c.IndexList {
 		strIndex := ""
 
-		if index == core.SystemIdField {
+		if index == engine.SystemIdField {
 			strIndex = fmt.Sprintf("%s:%v", index, (*ref).GetId())
 		} else {
 			f := reflect.ValueOf(ref).Elem().FieldByName(index)
@@ -64,7 +63,7 @@ func (c *Chunk[T]) DeleteFromIndex(refs []*T) {
 	for _, index := range c.IndexList {
 		for i := 0; i < len(refs); i++ {
 			strIndex := ""
-			if index == core.SystemIdField {
+			if index == engine.SystemIdField {
 				strIndex = fmt.Sprintf("%s:%v", index, (*refs[i]).GetId())
 			} else {
 				f := reflect.ValueOf(refs[i]).Elem().FieldByName(index)

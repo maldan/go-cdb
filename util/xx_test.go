@@ -3,8 +3,9 @@ package util_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/maldan/go-cdb/cdb_pack"
+	"github.com/maldan/go-cdb/pack"
 	"testing"
+	"unsafe"
 )
 
 type Test struct {
@@ -51,12 +52,16 @@ type Test struct {
 */
 
 func TestA2(t *testing.T) {
-
+	y := [4]rune{'a', 'с'}
+	fmt.Printf("%v\n", y[0])
+	fmt.Printf("%v\n", unsafe.Sizeof(Test{}))
 	//b1 := []byte{1, 2, 3, 4, 5}
 	//b2 := []byte{10, 10, 10, 10, 10}
 	//copy(b1[3:], b2)
 
-	vv := cdb_pack.Pack(&Test{
+	// fmt.Printf("%v\n", reflect.TypeOf([4]int{}).Bits())
+
+	vv := pack.Pack(&Test{
 		Id:                   1,
 		Id2:                  2,
 		Id3:                  4,
@@ -71,7 +76,7 @@ func TestA2(t *testing.T) {
 		EmergencyPersonPhone: "Сукаа маруляяяя",
 		Date:                 "suka",
 	})
-	x := cdb_pack.Unpack[Test](&vv)
+	x := pack.Unpack[Test](&vv)
 	fmt.Printf("%+v\n", x)
 
 	/*util.WriteBin("sas.bin", vv)
@@ -125,7 +130,7 @@ func BenchmarkMy2(b *testing.B) {
 		EmergencyPersonPhone: "Сукаа маруляяяя",
 	}
 	for i := 0; i < b.N; i++ {
-		v := cdb_pack.Pack(&a)
+		v := pack.Pack(&a)
 		b.SetBytes(int64(len(v)))
 	}
 }
@@ -163,10 +168,10 @@ func BenchmarkUnMy(b *testing.B) {
 		EmergencyPersonName:  "Сукаа маруляяяя",
 		EmergencyPersonPhone: "Сукаа маруляяяя",
 	}
-	bytes := cdb_pack.Pack(&a)
+	bytes := pack.Pack(&a)
 
 	for i := 0; i < b.N; i++ {
-		cdb_pack.Unpack[Test](&bytes)
+		pack.Unpack[Test](&bytes)
 		b.SetBytes(int64(len(bytes)))
 	}
 }
