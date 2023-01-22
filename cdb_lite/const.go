@@ -1,26 +1,28 @@
-package engine
+package cdb_lite
 
 import (
+	"reflect"
 	"sync"
 )
 
 type IEngineComparable interface {
-	comparable
 	GetId() uint32
 }
 
 type DataEngine[T IEngineComparable] struct {
-	Name          string
-	AutoIncrement uint32
-	IndexList     []string
-	ShowLogs      bool
+	Name              string
+	AutoIncrement     uint32
+	IndexList         []string
+	SearchFieldByList []string
+	ShowLogs          bool
 
 	length uint32
 
-	rawDataList  []T
-	recordList   []Record
-	indexList    map[string][]uint32
-	saveTaskList []uint32
+	rawDataListAsMap []map[string]any
+	rawDataList      []T
+	recordList       []Record
+	indexList        map[string][]uint32
+	saveTaskList     []uint32
 
 	dataMu  sync.RWMutex
 	storeMu sync.Mutex
@@ -56,3 +58,18 @@ func (r *SearchResult[T]) UnpackList() []T {
 	}
 	return out
 }
+
+type (
+	TpInfo struct {
+		Name           [][]byte
+		Offset         []uintptr
+		Type           []uint8
+		MaxBytesLength []int
+		FieldAmount    uint8
+
+		MapOffset map[string]uintptr
+		MapType   map[string]uint8
+	}
+)
+
+var typeCache = map[reflect.Type]*TpInfo{}

@@ -9,23 +9,23 @@ import (
 
 type Test struct {
 	Id uint32 `json:"id"`
-	A  string `json:"a"`
+	A  string `json:"a" len:"32"`
 	//GasId int    `json:"gasId"`
 
-	FirstName   string `json:"first_name" length:"32"`
-	LastName    string `json:"last_name"`
-	DateOfBirth string `json:"date_of_birth"`
+	FirstName   string `json:"first_name" len:"32"`
+	LastName    string `json:"last_name" len:"32"`
+	DateOfBirth string `json:"date_of_birth" len:"32"`
 	//Age                   int    `json:"age"`
-	Address               string `json:"address"`
-	City                  string `json:"city"`
-	State                 string `json:"state"`
-	ZipCode               string `json:"zip_code"`
-	Email                 string `json:"email"`
-	Phone                 string `json:"phone"`
-	EmergencyPersonName   string `json:"emergency_person_name"`
-	EmergencyPersonPhone  string `json:"emergency_person_phone"`
-	ParentOrLegalGuardian string `json:"parent_or_legal_guardian"`
-	Date                  string `json:"date"`
+	Address               string `json:"address" len:"32"`
+	City                  string `json:"city" len:"32"`
+	State                 string `json:"state" len:"32"`
+	ZipCode               string `json:"zip_code" len:"32"`
+	Email                 string `json:"email" len:"32"`
+	Phone                 string `json:"phone" len:"32"`
+	EmergencyPersonName   string `json:"emergency_person_name" len:"32"`
+	EmergencyPersonPhone  string `json:"emergency_person_phone" len:"32"`
+	ParentOrLegalGuardian string `json:"parent_or_legal_guardian" len:"32"`
+	Date                  string `json:"date" len:"32"`
 	//UserId                int    `json:"user_id"`
 	//DocumentId            int    `json:"document_id"`
 	//ReviewId              int    `json:"review_id"`
@@ -69,13 +69,45 @@ func TestRead(t *testing.T) {
 }
 */
 
+func TestFindByQuery(t *testing.T) {
+	c := cdb_lite.New[Test]("")
+	c.Init()
+	tt := time.Now()
+	c.Load()
+	fmt.Printf("Full Load: %v\n", time.Since(tt))
+	fmt.Printf("%v\n", c.Length())
+
+	for i := 0; i < 3; i++ {
+		tt = time.Now()
+		r := c.FindByQuery("Id==32768")
+		fmt.Printf("Search: %v\n", time.Since(tt))
+		fmt.Printf("%v\n", r)
+	}
+}
+
+func TestFindBy(t *testing.T) {
+	c := cdb_lite.New[Test]("")
+	c.Init()
+	tt := time.Now()
+	c.Load()
+	fmt.Printf("Full Load: %v\n", time.Since(tt))
+	fmt.Printf("%v\n", c.Length())
+
+	for i := 0; i < 3; i++ {
+		tt = time.Now()
+		r := c.FindBy(func(v *Test) bool { return v.Id == 32768 })
+		fmt.Printf("Search: %v\n", time.Since(tt))
+		fmt.Printf("%v\n", r)
+	}
+}
+
 func TestMyWrite(t *testing.T) {
-	c := cdb_lite.New[Test]()
+	c := cdb_lite.New[Test]("")
 	c.Init()
 
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 1_000_000; i++ {
 		id := c.GenerateId()
-		c.Add(Test{
+		c.Add(&Test{
 			Id:          id,
 			Phone:       "+79961156919",
 			FirstName:   "Roman",
@@ -93,13 +125,11 @@ func TestMyWrite(t *testing.T) {
 }
 
 func TestMyRead(t *testing.T) {
-	c := cdb_lite.New[Test]()
+	c := cdb_lite.New[Test]("")
 	c.Init()
 
 	tt := time.Now()
-	c.Load(func(test Test) {
-		fmt.Printf("%v\n", test)
-	})
+	c.Load()
 	fmt.Printf("Read: %v\n", time.Since(tt))
 
 	/*tt := time.Now()
