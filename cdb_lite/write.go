@@ -13,11 +13,14 @@ func (d *DataEngine[T]) loadRecord(v *T) {
 	lastIndex := len(d.rawDataList)
 	d.rawDataList = append(d.rawDataList, *v)
 	d.recordList = append(d.recordList, Record{
-		// chunkId:  d.IdToChunk(v.GetId()),
 		position: uint32(lastIndex),
 	})
 	d.length += 1
-	d.rawDataListAsMap = append(d.rawDataListAsMap, d.fastConvert(v))
+
+	// Add cache to query search
+	if len(d.SearchFieldByList) > 0 {
+		d.rawDataListAsMap = append(d.rawDataListAsMap, d.fastConvert(v))
+	}
 
 	d.AddIndex(uint32(lastIndex))
 }

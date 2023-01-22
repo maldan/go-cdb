@@ -20,10 +20,10 @@ func (d *DataEngine[T]) Load() {
 	})
 }
 
-func New[T IEngineComparable](name string) *DataEngine[T] {
+func New[T IEngineComparable](name string, result []string) *DataEngine[T] {
 	n := DataEngine[T]{
 		Name:              name,
-		SearchFieldByList: []string{"Id", "FirstName", "LastName", "Date", "Phone", "Address", "City"},
+		SearchFieldByList: result,
 	}
 	cmhp_byte.Pack[T](new(T)) // cache type + check
 	return &n

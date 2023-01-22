@@ -73,3 +73,14 @@ type (
 )
 
 var typeCache = map[reflect.Type]*TpInfo{}
+
+func (d *DataEngine[T]) fastConvert(v *T) map[string]any {
+	m := map[string]any{}
+
+	typeOf := reflect.TypeOf(v).Elem()
+	valueOf := reflect.ValueOf(v).Elem()
+	for i := 0; i < len(d.SearchFieldByList); i++ {
+		m[typeOf.Field(i).Name] = valueOf.FieldByName(d.SearchFieldByList[i]).Interface()
+	}
+	return m
+}

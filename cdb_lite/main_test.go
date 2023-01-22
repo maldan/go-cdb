@@ -69,8 +69,10 @@ func TestRead(t *testing.T) {
 }
 */
 
+// []string{"Id", "FirstName", "LastName", "Date", "Phone", "Address", "City"}
+
 func TestFindByQuery(t *testing.T) {
-	c := cdb_lite.New[Test]("")
+	c := cdb_lite.New[Test]("", []string{"Id"})
 	c.Init()
 	tt := time.Now()
 	c.Load()
@@ -79,14 +81,30 @@ func TestFindByQuery(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		tt = time.Now()
-		r := c.FindByQuery("Id==32768")
+		r := c.FindByQuery("Id==32768 || Id==750000", nil, 0, 1_000_000)
+		fmt.Printf("Search: %v\n", time.Since(tt))
+		fmt.Printf("%v\n", r)
+	}
+}
+
+func TestFindByQueryParallel(t *testing.T) {
+	c := cdb_lite.New[Test]("", nil)
+	c.Init()
+	tt := time.Now()
+	c.Load()
+	fmt.Printf("Full Load: %v\n", time.Since(tt))
+	fmt.Printf("%v\n", c.Length())
+
+	for i := 0; i < 3; i++ {
+		tt = time.Now()
+		r := c.FindByQueryParallel("Id==32768 || Id==750000")
 		fmt.Printf("Search: %v\n", time.Since(tt))
 		fmt.Printf("%v\n", r)
 	}
 }
 
 func TestFindBy(t *testing.T) {
-	c := cdb_lite.New[Test]("")
+	c := cdb_lite.New[Test]("", nil)
 	c.Init()
 	tt := time.Now()
 	c.Load()
@@ -95,26 +113,28 @@ func TestFindBy(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		tt = time.Now()
-		r := c.FindBy(func(v *Test) bool { return v.Id == 32768 })
+		r := c.FindBy(func(v *Test) bool { return v.Id == 32768 || v.Id == 750000 })
 		fmt.Printf("Search: %v\n", time.Since(tt))
 		fmt.Printf("%v\n", r)
 	}
 }
 
 func TestMyWrite(t *testing.T) {
-	c := cdb_lite.New[Test]("")
+	c := cdb_lite.New[Test]("", nil)
 	c.Init()
 
 	for i := 0; i < 1_000_000; i++ {
 		id := c.GenerateId()
 		c.Add(&Test{
-			Id:          id,
-			Phone:       "+79961156919",
-			FirstName:   "Roman",
-			LastName:    "Moldovan",
-			DateOfBirth: "1992-08-28",
-			Address:     "lox",
-			City:        "Zvenigovo", State: "Marii-El", ZipCode: "425061",
+			Id:                   id,
+			Phone:                "+79961156919",
+			FirstName:            "Roman",
+			LastName:             "Moldovan",
+			DateOfBirth:          "1992-08-28",
+			Address:              "lox",
+			City:                 "Zvenigovo",
+			State:                "Marii-El",
+			ZipCode:              "425061",
 			Email:                "blackwanted@yandex.ru",
 			Date:                 "2000-01-01 00:00:01",
 			EmergencyPersonPhone: "+79961156919",
@@ -125,7 +145,7 @@ func TestMyWrite(t *testing.T) {
 }
 
 func TestMyRead(t *testing.T) {
-	c := cdb_lite.New[Test]("")
+	c := cdb_lite.New[Test]("", nil)
 	c.Init()
 
 	tt := time.Now()
