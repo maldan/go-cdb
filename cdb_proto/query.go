@@ -13,6 +13,18 @@ func (d *DataTable[T]) Query(query string) {
 	d.Select(q)
 }
 
+func OpStrCmp(left func() string, right func() string) bool {
+	a := left()
+	b := right()
+	return a == b
+}
+
+func OpAnd(left func() any, right func() any) bool {
+	a := left()
+	b := right()
+	return a == b
+}
+
 func (d *DataTable[T]) Select(query parse.QueryInfo) {
 	offset := core.HeaderSize
 
@@ -25,7 +37,8 @@ func (d *DataTable[T]) Select(query parse.QueryInfo) {
 			break
 		}
 	}*/
-	strAsBytes := []byte(query.Condition[0].Value.(string))
+	// strAsBytes := []byte(query.Condition[0].Value.(string))
+	strAsBytes := []byte("AA")
 
 	for {
 		size, fieldLen, startData := pack.ReadHeader(d.mem, offset, fieldOffsetIndex)

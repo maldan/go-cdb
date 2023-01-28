@@ -2,58 +2,218 @@ package parse
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 )
 
 type QueryExpression struct {
-	Field    string
+	//Field    string
+	//Value    any
 	Operator string
-	Value    any
+	Left     any
+	Right    any
 }
 
 type QueryInfo struct {
 	Operation    string
 	SelectFields []string
-	Condition    []QueryExpression
+	Condition    QueryExpression
 	TypeInfo     reflect.Type
 }
 
-func parseWhere(queryInfo *QueryInfo, tuples []string) {
-	expression := QueryExpression{
-		Field:    tuples[0],
-		Operator: tuples[1],
-		Value:    tuples[2],
-	}
-
-	// String value
-	if tuples[2][0] == '\'' {
-		expression.Value = tuples[2][1 : len(tuples[2])-1]
-	}
-
-	queryInfo.Condition = append(queryInfo.Condition, expression)
+type TokenType struct {
+	Token string
+	Type  string
 }
 
-func parseSelect(queryInfo *QueryInfo, tuples []string) {
-	fmt.Printf("%v\n", tuples)
+func hasPrecedence(op1, op2 string) bool {
+	if op2 == "(" || op2 == ")" {
+		return false
+	}
+	if (op1 == "AND") && (op2 == "==") {
+		return false
+	}
+	if (op1 == "*" || op1 == "/") && (op2 == "+" || op2 == "-") {
+		return false
+	} else {
+		return true
+	}
+}
+
+var cnt = 0
+
+func applyOp(op string, a any, b any) any {
+	if op == "AND" {
+		cnt += 1
+		return QueryExpression{Operator: "AND", Left: a, Right: b}
+	}
+	if op == "==" {
+		cnt += 1
+		return QueryExpression{Operator: "==", Left: a, Right: b}
+	}
+	return ""
+}
+
+func pop[T any](s *[]T) T {
+	/*if len(*s) == 0 {
+		return ""
+	}*/
+	v := (*s)[len(*s)-1]
+	*s = (*s)[0 : len(*s)-1]
+	return v
+}
+
+func parseWhere(queryInfo *QueryInfo, tokens []TokenType) {
+	values := make([]any, 0)
+	ops := make([]string, 0)
+
+	for i := 0; i < len(tokens); i++ {
+		if tokens[i].Token == "(" {
+			ops = append(ops, tokens[i].Token)
+		} else if tokens[i].Token == ")" {
+			for {
+
+				op := pop(&ops)
+				v1 := pop(&values)
+				v2 := pop(&values)
+				values = append(values, applyOp(op, v2, v1))
+				if ops[len(ops)-1] == "(" {
+					break
+				}
+			}
+			pop(&ops)
+		} else if tokens[i].Token == "==" || tokens[i].Token == "AND" {
+			for {
+				if len(ops) == 0 {
+					break
+				}
+				if !hasPrecedence(tokens[i].Token, ops[len(ops)-1]) {
+					break
+				}
+
+				op := pop(&ops)
+				v1 := pop(&values)
+				v2 := pop(&values)
+				values = append(values, applyOp(op, v2, v1))
+			}
+			ops = append(ops, tokens[i].Token)
+		} else {
+			values = append(values, tokens[i].Token)
+		}
+	}
+
+	for {
+		if len(ops) == 0 {
+			break
+		}
+
+		op := pop(&ops)
+		v1 := pop(&values)
+		v2 := pop(&values)
+
+		values = append(values, applyOp(op, v2, v1))
+	}
+
+	// cmhp_print.Print(pop(&values))
+	//fmt.Printf("%v\n", ops)
+	// fmt.Printf("%v\n", pop(&values))
+	//fmt.Printf("%v\n", queryInfo.Condition)
+	queryInfo.Condition = pop(&values).(QueryExpression)
+}
+
+func parseSelect(queryInfo *QueryInfo, tokens []TokenType) {
+	// fmt.Printf("%v\n", tuples)
 
 	// Check source
-	if tuples[0] == "*" {
+	if tokens[0].Token == "*" {
 		for i := 0; i < queryInfo.TypeInfo.NumField(); i++ {
 			queryInfo.SelectFields = append(queryInfo.SelectFields, queryInfo.TypeInfo.Field(i).Name)
 		}
 	}
 
 	// Check source
-	if strings.ToLower(tuples[1]) == "from" && tuples[2] == "table" {
+	if strings.ToLower(tokens[1].Token) == "from" && tokens[2].Token == "table" {
 		// ok
 	}
 
 	// Check source
-	if strings.ToLower(tuples[3]) == "where" {
-		parseWhere(queryInfo, tuples[4:])
+	if strings.ToLower(tokens[3].Token) == "where" {
+		parseWhere(queryInfo, tokens[4:])
 	}
+}
+
+func tokenizer(str string) []TokenType {
+	out := make([]TokenType, 0)
+	tempStr := ""
+	tempNumber := ""
+	mode := ""
+	previousMode := ""
+	isQuoteMode := false
+	tempQuote := ""
+	str += " "
+	tempOp := ""
+
+	for i := 0; i < len(str); i++ {
+		if isQuoteMode {
+			if str[i] == '\'' {
+				isQuoteMode = false
+				mode = ""
+				continue
+			}
+			tempQuote += string(str[i])
+			continue
+		}
+
+		if str[i] == '\'' {
+			mode = "quote"
+			isQuoteMode = true
+		} else if str[i] == ' ' {
+			mode = "space"
+		} else if str[i] >= '0' && str[i] <= '9' {
+			tempNumber += string(str[i])
+			mode = "number"
+		} else if str[i] == '(' {
+			mode = "("
+		} else if str[i] == ')' {
+			mode = ")"
+		} else if str[i] == '*' {
+			mode = "*"
+		} else if str[i] == '=' {
+			tempOp += "="
+			mode = "="
+		} else {
+			tempStr += string(str[i])
+			mode = "string"
+		}
+
+		if mode != previousMode {
+			if previousMode == "=" {
+				out = append(out, TokenType{Token: tempOp, Type: "op"})
+				tempOp = ""
+			} else if previousMode == ")" {
+				out = append(out, TokenType{Token: ")", Type: "op"})
+			} else if previousMode == "(" {
+				out = append(out, TokenType{Token: "(", Type: "op"})
+			} else if previousMode == "*" {
+				out = append(out, TokenType{Token: "*", Type: "op"})
+			} else if previousMode == "space" {
+
+			} else if previousMode == "string" {
+				out = append(out, TokenType{Token: tempStr, Type: "var"})
+				tempStr = ""
+			} else if previousMode == "number" {
+				out = append(out, TokenType{Token: tempNumber, Type: "number"})
+				tempNumber = ""
+			} else if previousMode == "quote" {
+				out = append(out, TokenType{Token: tempQuote, Type: "string"})
+				tempQuote = ""
+			}
+
+			previousMode = mode
+		}
+
+	}
+	return out
 }
 
 func Query[T any](query string) (QueryInfo, error) {
@@ -61,14 +221,14 @@ func Query[T any](query string) (QueryInfo, error) {
 		TypeInfo: reflect.TypeOf(*new(T)),
 	}
 
-	tuples := strings.Split(query, " ")
+	tokens := tokenizer(query)
+	// cmhp_print.Print(tokens)
 
-	// Is select query
-	if strings.ToLower(tuples[0]) == "select" {
+	if strings.ToLower(tokens[0].Token) == "select" {
 		queryInfo.Operation = "select"
-		parseSelect(&queryInfo, tuples[1:])
+		parseSelect(&queryInfo, tokens[1:])
 	} else {
-		return queryInfo, errors.New("unknown operator " + tuples[0])
+		return queryInfo, errors.New("unknown operator " + tokens[0].Token)
 	}
 
 	return queryInfo, nil
