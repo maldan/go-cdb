@@ -2,7 +2,6 @@ package cdb_flat
 
 import (
 	"fmt"
-	"github.com/maldan/go-cdb/util"
 	"reflect"
 	"sync"
 	"time"

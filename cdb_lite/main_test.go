@@ -8,14 +8,14 @@ import (
 )
 
 type Test struct {
-	Id uint32 `json:"id"`
-	A  string `json:"a" len:"32"`
-	//GasId int    `json:"gasId"`
+	Id    uint32 `json:"id"`
+	A     string `json:"a" len:"32"`
+	GasId int    `json:"gasId"`
 
-	FirstName   string `json:"first_name" len:"32"`
-	LastName    string `json:"last_name" len:"32"`
-	DateOfBirth string `json:"date_of_birth" len:"32"`
-	//Age                   int    `json:"age"`
+	FirstName             string `json:"first_name" len:"32"`
+	LastName              string `json:"last_name" len:"32"`
+	DateOfBirth           string `json:"date_of_birth" len:"32"`
+	Age                   int    `json:"age"`
 	Address               string `json:"address" len:"32"`
 	City                  string `json:"city" len:"32"`
 	State                 string `json:"state" len:"32"`
@@ -26,12 +26,11 @@ type Test struct {
 	EmergencyPersonPhone  string `json:"emergency_person_phone" len:"32"`
 	ParentOrLegalGuardian string `json:"parent_or_legal_guardian" len:"32"`
 	Date                  string `json:"date" len:"32"`
-	//UserId                int    `json:"user_id"`
-	//DocumentId            int    `json:"document_id"`
-	//ReviewId              int    `json:"review_id"`
-	//ReviewEnabled         bool   `json:"review_enabled"`
-
-	//Created time.Time `json:"created"`
+	// UserId                int    `json:"user_id"`
+	// DocumentId            int    `json:"document_id"`
+	// ReviewId              int    `json:"review_id"`
+	// ReviewEnabled         bool   `json:"review_enabled"`
+	// Created time.Time `json:"created"`
 }
 
 func (t Test) GetId() uint32 {
@@ -71,6 +70,33 @@ func TestRead(t *testing.T) {
 
 // []string{"Id", "FirstName", "LastName", "Date", "Phone", "Address", "City"}
 
+func TestMyWrite(t *testing.T) {
+	c := cdb_lite.New[Test]("sas", nil)
+	c.Init()
+
+	tt := time.Now()
+	for i := 0; i < 1_000_000; i++ {
+		id := c.GenerateId()
+		c.Add(Test{
+			Id:                   id,
+			Phone:                "+79961156919",
+			FirstName:            "Roman",    //17
+			LastName:             "Moldovan", // 25
+			DateOfBirth:          "1992-08-28",
+			Address:              "lox",
+			City:                 "Zvenigovo", // 47
+			State:                "Marii-El",
+			ZipCode:              "425061",
+			Email:                "blackwanted@yandex.ru", // 83
+			Date:                 "2000-01-01 00:00:01",
+			EmergencyPersonPhone: "+79961156919",
+			EmergencyPersonName:  "Ganvarr", // 121
+		})
+	}
+	c.Flush()
+	fmt.Printf("Write: %v\n", time.Since(tt))
+}
+
 func TestFindByQuery(t *testing.T) {
 	c := cdb_lite.New[Test]("", []string{"Id"})
 	c.Init()
@@ -104,7 +130,7 @@ func TestFindByQueryParallel(t *testing.T) {
 }
 
 func TestFindBy(t *testing.T) {
-	c := cdb_lite.New[Test]("", nil)
+	c := cdb_lite.New[Test]("sas", nil)
 	c.Init()
 	tt := time.Now()
 	c.Load()
@@ -117,31 +143,8 @@ func TestFindBy(t *testing.T) {
 		fmt.Printf("Search: %v\n", time.Since(tt))
 		fmt.Printf("%v\n", r)
 	}
-}
 
-func TestMyWrite(t *testing.T) {
-	c := cdb_lite.New[Test]("", nil)
-	c.Init()
-
-	for i := 0; i < 1_000_000; i++ {
-		id := c.GenerateId()
-		c.Add(&Test{
-			Id:                   id,
-			Phone:                "+79961156919",
-			FirstName:            "Roman",
-			LastName:             "Moldovan",
-			DateOfBirth:          "1992-08-28",
-			Address:              "lox",
-			City:                 "Zvenigovo",
-			State:                "Marii-El",
-			ZipCode:              "425061",
-			Email:                "blackwanted@yandex.ru",
-			Date:                 "2000-01-01 00:00:01",
-			EmergencyPersonPhone: "+79961156919",
-			EmergencyPersonName:  "Ganvarr",
-		})
-	}
-	c.Flush()
+	time.Sleep(time.Second * 15)
 }
 
 func TestMyRead(t *testing.T) {

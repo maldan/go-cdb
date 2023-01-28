@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/maldan/go-cmhp/cmhp_byte"
-	"io"
 	"os"
 	"sync"
 )
@@ -12,8 +11,8 @@ import (
 type Storage[T IEngineComparable] struct {
 	Buffer []StorageOperation[T]
 
-	bufferMu  sync.Mutex
-	dataTable *os.File
+	name     string
+	bufferMu sync.Mutex
 }
 
 const OpAdd = 1
@@ -65,14 +64,14 @@ func PackRecord[T IEngineComparable](v *T) []byte {
 	return recordData
 }
 
-func UnpackRecord[T IEngineComparable](bytes *[]byte) (T, int64, error) {
+func UnpackRecord[T IEngineComparable](bytes []byte) (T, int64, error) {
 	// Impossible to parse, not enough data
-	if len(*bytes) < _hStart+_hStatus+_hLen {
+	if len(bytes) < _hStart+_hStatus+_hLen {
 		return *new(T), 0, errors.New("not full")
 	}
 
 	// Check header
-	if !((*bytes)[0] == 0x12 && (*bytes)[1] == 0x34) {
+	if !((bytes)[0] == 0x12 && (bytes)[1] == 0x34) {
 		return *new(T), 1, errors.New("non record")
 	}
 
@@ -80,18 +79,23 @@ func UnpackRecord[T IEngineComparable](bytes *[]byte) (T, int64, error) {
 	length := cmhp_byte.Read24FromBuffer(bytes, _hStart+_hStatus)
 
 	// Check bounds
-	if len(*bytes) < _hStart+_hStatus+_hLen+int(length)+_hEnd {
+	if len(bytes) < _hStart+_hStatus+_hLen+int(length)+_hEnd {
 		return *new(T), 0, errors.New("not full")
 	}
 
 	// Check end
-	if !((*bytes)[_hStart+_hStatus+_hLen+int(length)] == 0x56 && (*bytes)[_hStart+_hStatus+_hLen+int(length)+1] == 0x78) {
+	if !((bytes)[_hStart+_hStatus+_hLen+int(length)] == 0x56 && (bytes)[_hStart+_hStatus+_hLen+int(length)+1] == 0x78) {
 		return *new(T), 1, errors.New("non end")
 	}
 
 	// Read all bytes and unpack
-	r := (*bytes)[_hStart+_hStatus+_hLen:]
-	out := cmhp_byte.Unpack[T](&r)
+	r := (bytes)[_hStart+_hStatus+_hLen:]
+
+	// Make copy, for garbage collector issue
+	//r2 := make([]byte, len(r))
+	//copy(r2, r)
+
+	out := cmhp_byte.Unpack[T](r)
 
 	return out, int64(_hStart + _hStatus + _hLen + length + _hEnd), nil
 }
@@ -100,7 +104,8 @@ func (r *Storage[T]) Flush() {
 	r.bufferMu.Lock()
 	defer r.bufferMu.Unlock()
 
-	h, err := os.OpenFile("sas.body", os.O_APPEND|os.O_CREATE, 0777)
+	h, err := os.OpenFile(r.name+".blob", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
+	defer h.Close()
 	if err != nil {
 		panic(err)
 	}
@@ -123,33 +128,51 @@ func (r *Storage[T]) Flush() {
 		}
 	}
 
-	h.Close()
-
 	// Clear buffer
 	r.Buffer = make([]StorageOperation[T], 0)
 }
 
-func (r *Storage[T]) Load(populate func(*T)) {
-	h, err := os.OpenFile("sas.body", os.O_RDONLY, 0777)
+func (r *Storage[T]) Load(populate func(T)) {
+	h, err := os.OpenFile(r.name+".blob", os.O_RDONLY, 0777)
+	defer h.Close()
 	if err != nil {
 		panic(err)
 	}
 
 	// Buff
 	offset := int64(0)
-	packageOffset := int64(0)
+	//packageOffset := int64(0)
 	fileInfo, _ := h.Stat()
 	increasePage := 0
 
+	buffer := make([]byte, fileInfo.Size())
+	h.ReadAt(buffer, offset)
+
 	for {
+		// page := buffer[packageOffset:]
+		p, n, e2 := UnpackRecord[T](buffer[offset:])
+
+		offset += n
+		// packageOffset += n
+		if e2 != nil {
+			/*if e2.Error() == "not full" {
+				increasePage += 1024
+			}*/
+			break
+		}
+		populate(p)
+	}
+
+	/*for {
 		buffer := make([]byte, 65536+increasePage)
+
 		_, err := h.ReadAt(buffer, offset)
 		packageOffset = 0
 
 		// Read packaged
 		for {
 			page := buffer[packageOffset:]
-			p, n, e2 := UnpackRecord[T](&page)
+			p, n, e2 := UnpackRecord[T](page)
 
 			offset += n
 			packageOffset += n
@@ -159,7 +182,7 @@ func (r *Storage[T]) Load(populate func(*T)) {
 				}
 				break
 			}
-			populate(&p)
+			populate(p)
 		}
 
 		if offset >= fileInfo.Size() {
@@ -171,5 +194,7 @@ func (r *Storage[T]) Load(populate func(*T)) {
 				panic(err)
 			}
 		}
-	}
+	}*/
+
+	fmt.Printf("%v - %v\n", increasePage, "Done")
 }

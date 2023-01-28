@@ -22,7 +22,6 @@ type DataEngine[T IEngineComparable] struct {
 	rawDataList      []T
 	recordList       []Record
 	indexList        map[string][]uint32
-	saveTaskList     []uint32
 
 	dataMu  sync.RWMutex
 	storeMu sync.Mutex
