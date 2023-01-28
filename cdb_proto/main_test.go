@@ -27,6 +27,6 @@ func TestSimpleQuery(t *testing.T) {
 	table := cdb_proto.New[Test]("../db/test")
 
 	tt := time.Now()
-	table.Query("SELECT * FROM table WHERE (FirstName == '00999999') AND (LastName == 'B')")
+	table.Query("SELECT * FROM table WHERE FirstName == '00999999'")
 	fmt.Printf("%v\n", time.Since(tt))
 }

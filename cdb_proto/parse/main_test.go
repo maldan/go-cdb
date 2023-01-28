@@ -13,7 +13,7 @@ type Test struct {
 }
 
 func TestParseSelect(t *testing.T) {
-	q, err := parse.Query[Test]("SELECT * FROM table WHERE FirstName == 'Lox'")
+	q, err := parse.Query[Test]("SELECT * FROM table WHERE FirstName == 'Lox' AND LastName == 'Gavno'")
 	fmt.Printf("%+v\n", q)
 	fmt.Printf("%v\n", err)
 }

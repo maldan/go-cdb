@@ -17,3 +17,8 @@ const TStruct = 9
 const TSlice = 10
 
 const HeaderSize = 1024
+
+const TokenString = 0
+const TokenOp = 1
+const TokenIdentifier = 2
+const TokenNumber = 3

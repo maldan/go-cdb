@@ -20,6 +20,7 @@ type DataTable[T any] struct {
 
 func New[T any](name string) *DataTable[T] {
 	d := DataTable[T]{Name: name}
+	d.structInfo.FieldNameToId = map[string]int{}
 	d.open()
 	d.remap()
 	d.readHeader()

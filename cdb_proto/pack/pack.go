@@ -25,6 +25,13 @@ func ReadHeader(m []byte, offset int, fieldOffsetIndex int) (int, int, int) {
 	return size, fieldLen, offset + fieldOffset
 }
 
+func ReadHeader2(m []byte, offset int) (int, []byte) {
+	size := int(binary.LittleEndian.Uint32(m[offset+_hStart:]))
+	total := int(m[offset+_hStart+_hSize])
+
+	return size, m[offset+_hStart+_hSize+_hTotal : offset+_hStart+_hSize+_hTotal+total*8]
+}
+
 func Pack[T any](v T) []byte {
 	size := _hStart + _hSize + _hTotal + _hEnd
 

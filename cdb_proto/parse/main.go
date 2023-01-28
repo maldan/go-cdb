@@ -2,123 +2,120 @@ package parse
 
 import (
 	"errors"
+	"fmt"
+	"github.com/maldan/go-cdb/cdb_proto/core"
 	"reflect"
 	"strings"
 )
 
 type QueryExpression struct {
 	//Field    string
-	//Value    any
+	//Value any
+	//Type  string
+	//LeftOffset  int
+	//RightOffset int
 	Operator string
-	Left     any
-	Right    any
+	Left     string
+	Right    string
+
+	//Left     *QueryExpression
+	//Right    *QueryExpression
 }
 
 type QueryInfo struct {
-	Operation    string
-	SelectFields []string
-	Condition    QueryExpression
-	TypeInfo     reflect.Type
+	Operation      string
+	SelectFields   []string
+	WhereCondition []TokenType
+	TypeInfo       reflect.Type
 }
 
 type TokenType struct {
-	Token string
-	Type  string
+	Token       string
+	Type        uint8
+	Value       any
+	B           []byte
+	TableOffset int
 }
 
-func hasPrecedence(op1, op2 string) bool {
-	if op2 == "(" || op2 == ")" {
-		return false
+func precedence(op TokenType) int {
+	switch op.Token {
+	case "-":
+	case "+":
+		return 11
+	case "*":
+	case "/":
+		return 12
+	case "==":
+		return 8
+	case "&&":
+		return 4
+	default:
+		return -1
 	}
-	if (op1 == "AND") && (op2 == "==") {
-		return false
-	}
-	if (op1 == "*" || op1 == "/") && (op2 == "+" || op2 == "-") {
-		return false
-	} else {
-		return true
+	return -1
+}
+
+func reverse[S ~[]E, E any](s S) {
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+		s[i], s[j] = s[j], s[i]
 	}
 }
 
-var cnt = 0
+func infixToPostfix(tokens []TokenType) []TokenType {
+	postfix := make([]TokenType, 0)
+	stack := make([]TokenType, 0)
 
-func applyOp(op string, a any, b any) any {
-	if op == "AND" {
-		cnt += 1
-		return QueryExpression{Operator: "AND", Left: a, Right: b}
+	for i := 0; i < len(tokens); i++ {
+		if tokens[i].Type == core.TokenOp {
+			for {
+				if len(stack) == 0 {
+					break
+				}
+				if precedence(top(&stack)) < precedence(tokens[i]) {
+					break
+				}
+
+				postfix = append(postfix, top(&stack))
+				pop(&stack)
+			}
+			stack = append(stack, tokens[i])
+		} else {
+			postfix = append(postfix, tokens[i])
+		}
 	}
-	if op == "==" {
-		cnt += 1
-		return QueryExpression{Operator: "==", Left: a, Right: b}
+
+	for {
+		if len(stack) == 0 {
+			break
+		}
+		postfix = append(postfix, top(&stack))
+		pop(&stack)
 	}
-	return ""
+
+	fmt.Printf("%v\n", postfix)
+	return postfix
 }
 
 func pop[T any](s *[]T) T {
-	/*if len(*s) == 0 {
-		return ""
-	}*/
 	v := (*s)[len(*s)-1]
 	*s = (*s)[0 : len(*s)-1]
 	return v
 }
 
+func top[T any](s *[]T) T {
+	return (*s)[len(*s)-1]
+}
+
 func parseWhere(queryInfo *QueryInfo, tokens []TokenType) {
-	values := make([]any, 0)
-	ops := make([]string, 0)
-
+	// Change tokes
 	for i := 0; i < len(tokens); i++ {
-		if tokens[i].Token == "(" {
-			ops = append(ops, tokens[i].Token)
-		} else if tokens[i].Token == ")" {
-			for {
-
-				op := pop(&ops)
-				v1 := pop(&values)
-				v2 := pop(&values)
-				values = append(values, applyOp(op, v2, v1))
-				if ops[len(ops)-1] == "(" {
-					break
-				}
-			}
-			pop(&ops)
-		} else if tokens[i].Token == "==" || tokens[i].Token == "AND" {
-			for {
-				if len(ops) == 0 {
-					break
-				}
-				if !hasPrecedence(tokens[i].Token, ops[len(ops)-1]) {
-					break
-				}
-
-				op := pop(&ops)
-				v1 := pop(&values)
-				v2 := pop(&values)
-				values = append(values, applyOp(op, v2, v1))
-			}
-			ops = append(ops, tokens[i].Token)
-		} else {
-			values = append(values, tokens[i].Token)
+		if tokens[i].Token == "AND" {
+			tokens[i].Token = "&&"
+			tokens[i].Type = core.TokenOp
 		}
 	}
 
-	for {
-		if len(ops) == 0 {
-			break
-		}
-
-		op := pop(&ops)
-		v1 := pop(&values)
-		v2 := pop(&values)
-
-		values = append(values, applyOp(op, v2, v1))
-	}
-
-	// cmhp_print.Print(pop(&values))
-	//fmt.Printf("%v\n", ops)
-	// fmt.Printf("%v\n", pop(&values))
-	//fmt.Printf("%v\n", queryInfo.Condition)
-	queryInfo.Condition = pop(&values).(QueryExpression)
+	queryInfo.WhereCondition = infixToPostfix(tokens)
 }
 
 func parseSelect(queryInfo *QueryInfo, tokens []TokenType) {
@@ -188,24 +185,24 @@ func tokenizer(str string) []TokenType {
 
 		if mode != previousMode {
 			if previousMode == "=" {
-				out = append(out, TokenType{Token: tempOp, Type: "op"})
+				out = append(out, TokenType{Token: tempOp, Type: core.TokenOp})
 				tempOp = ""
 			} else if previousMode == ")" {
-				out = append(out, TokenType{Token: ")", Type: "op"})
+				out = append(out, TokenType{Token: ")", Type: core.TokenOp})
 			} else if previousMode == "(" {
-				out = append(out, TokenType{Token: "(", Type: "op"})
+				out = append(out, TokenType{Token: "(", Type: core.TokenOp})
 			} else if previousMode == "*" {
-				out = append(out, TokenType{Token: "*", Type: "op"})
+				out = append(out, TokenType{Token: "*", Type: core.TokenOp})
 			} else if previousMode == "space" {
 
 			} else if previousMode == "string" {
-				out = append(out, TokenType{Token: tempStr, Type: "var"})
+				out = append(out, TokenType{Token: tempStr, Type: core.TokenIdentifier})
 				tempStr = ""
 			} else if previousMode == "number" {
-				out = append(out, TokenType{Token: tempNumber, Type: "number"})
+				out = append(out, TokenType{Token: tempNumber, Type: core.TokenNumber})
 				tempNumber = ""
 			} else if previousMode == "quote" {
-				out = append(out, TokenType{Token: tempQuote, Type: "string"})
+				out = append(out, TokenType{Token: tempQuote, B: []byte(tempQuote), Type: core.TokenString})
 				tempQuote = ""
 			}
 
