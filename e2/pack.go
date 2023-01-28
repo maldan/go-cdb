@@ -21,7 +21,7 @@ func Pack[T any](v T) []byte {
 		if typeOf.Field(i).Type.Kind() == reflect.String {
 			size += 4
 			size += valueOf.Field(i).Len()
-			sizeOfEachPart = append(sizeOfEachPart, 4+valueOf.Field(i).Len())
+			sizeOfEachPart = append(sizeOfEachPart, valueOf.Field(i).Len())
 		}
 
 		total += 1
@@ -36,25 +36,22 @@ func Pack[T any](v T) []byte {
 	// Set number of fields
 	out[4] = total
 
-	// Set offsets
-	firstOffset := int(_hSize + _hTotal + (4 * total))
+	// Set offsets and size
+	firstOffset := int(_hSize + _hTotal + (8 * total))
 	for i := 0; i < typeOf.NumField(); i++ {
-		cmhp_byte.From32ToBuffer(&firstOffset, &out, 5+(i*4))
+		cmhp_byte.From32ToBuffer(&firstOffset, &out, _hSize+_hTotal+(i*8))
+		cmhp_byte.From32ToBuffer(&sizeOfEachPart[i], &out, _hSize+_hTotal+(i*8)+4)
 		firstOffset += sizeOfEachPart[i]
 	}
 
 	// Copy data
-	firstOffset = int(_hSize + _hTotal + (4 * total))
+	firstOffset = int(_hSize + _hTotal + (8 * total))
 	for i := 0; i < typeOf.NumField(); i++ {
 		if typeOf.Field(i).Type.Kind() == reflect.String {
-			// Copy size
-			partSize := sizeOfEachPart[i] - 4
-			cmhp_byte.From32ToBuffer(&partSize, &out, firstOffset)
 			// Copy data
-			copy(out[firstOffset+4:], valueOf.Field(i).Interface().(string))
+			copy(out[firstOffset:], valueOf.Field(i).Interface().(string))
 
 			// Jump to next cell
-			firstOffset += 4
 			firstOffset += valueOf.Field(i).Len()
 		}
 	}

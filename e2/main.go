@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/edsrzf/mmap-go"
+	"github.com/maldan/go-cmhp/cmhp_byte"
 	"github.com/maldan/go-cmhp/cmhp_crypto"
 	"github.com/maldan/go-cmhp/cmhp_file"
 	"github.com/maldan/go-cmhp/cmhp_print"
@@ -14,9 +15,10 @@ import (
 )
 
 type Test struct {
-	FirstName string
-	LastName  string
-	Phone     string
+	FirstName string `id:"0"`
+	LastName  string `id:"1"`
+	Phone     string `id:"2"`
+	Lox       int    `id:"3"`
 }
 
 func Lg(a int, b int) bool {
@@ -35,6 +37,35 @@ func StrCmp(a []byte, b []byte) bool {
 	return true
 }
 
+func Update(m []byte, index int, field string, v string) {
+	offset := int(indexMap[index])
+	typeOf := reflect.TypeOf(Test{})
+
+	fieldOffsetIndex := 0
+	for i := 0; i < typeOf.NumField(); i++ {
+		if typeOf.Field(i).Name == field {
+			fieldOffsetIndex = i * 8
+			break
+		}
+	}
+
+	_, _, startData := readHeader(m, offset, fieldOffsetIndex)
+	newLen := len(v)
+	cmhp_byte.From32ToBuffer(&newLen, &m, offset+_hSize+_hTotal+fieldOffsetIndex+4)
+	copy(m[startData:], v)
+}
+
+func readHeader(m []byte, offset int, fieldOffsetIndex int) (int, int, int) {
+	size := int(binary.LittleEndian.Uint32(m[offset:]))
+
+	localOffset := offset + 5 + fieldOffsetIndex
+
+	fieldOffset := int(binary.LittleEndian.Uint32(m[localOffset:]))
+	fieldLen := int(binary.LittleEndian.Uint32(m[localOffset+4:]))
+
+	return size, fieldLen, offset + fieldOffset
+}
+
 func Find(m []byte, field string, v string) {
 	offset := 0
 
@@ -47,21 +78,14 @@ func Find(m []byte, field string, v string) {
 	fieldOffsetIndex := 0
 	for i := 0; i < typeOf.NumField(); i++ {
 		if typeOf.Field(i).Name == field {
-			fieldOffsetIndex = i * 4
+			fieldOffsetIndex = i * 8
 			break
 		}
 	}
 
 	for {
-		size := binary.LittleEndian.Uint32(m[offset:])
-
-		localOffset := offset + 5 + fieldOffsetIndex
-
-		fieldOffset := binary.LittleEndian.Uint32(m[localOffset:])
-		localOffset = offset + int(fieldOffset)
-
-		fieldLen := binary.LittleEndian.Uint32(m[localOffset:])
-		fieldData := m[localOffset+4 : localOffset+4+int(fieldLen)]
+		size, fieldLen, startData := readHeader(m, offset, fieldOffsetIndex)
+		fieldData := m[startData : startData+fieldLen]
 
 		isFound := comparator(strAsBytes, fieldData)
 
@@ -70,7 +94,7 @@ func Find(m []byte, field string, v string) {
 			break
 		}
 
-		offset += int(size)
+		offset += size
 		if offset >= len(m) {
 			break
 		}
@@ -127,24 +151,25 @@ func mainX() {
 }
 
 func main() {
-	//mainX()
-	//generate()
-	//return
-	/*generate()
-	return*/
+	// mainX()
+	// generate()
+	// return
+	/* generate()
+	return */
 	// generate()
 	// return
 	// defer rec()
 
-	f, _ := os.OpenFile("./file", os.O_RDWR, 0644)
+	f, _ := os.OpenFile("./file", os.O_RDWR, 0777)
 	defer f.Close()
 
 	mem, _ := mmap.Map(f, mmap.RDWR, 0)
 	defer mem.Unmap()
-	fmt.Println(len(mem))
+
+	calculateIndex(mem)
 
 	t := time.Now()
-	/*offset := 0
+	/* offset := 0
 	cycles := 0
 	for i := 0; i < len(mem)-16; i++ {
 		if string(mem[offset:offset+16]) == "sasageo 99999999" {
@@ -153,8 +178,12 @@ func main() {
 		}
 		offset += 16
 		cycles += 1
-	}*/
-	Find(mem, "Phone", "zTOO2Ot4okhs")
+	} */
+	//Find(mem, "Phone", "bzu9AIR6KcH4")
+	Find(mem, "FirstName", "AC3")
+
+	// Update(mem, 500_000, "FirstName", "AC3")
+	// mem.Flush()
 	fmt.Printf("Time: %v\n", time.Since(t))
 
 	for {
