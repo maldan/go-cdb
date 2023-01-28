@@ -12,9 +12,12 @@ const _hTotal = 1
 const _hEnd = 2
 
 func ReadHeader(m []byte, offset int, fieldOffsetIndex int) (int, int, int) {
-	size := int(binary.LittleEndian.Uint32(m[offset:]))
+	// Skip header
+	// offset += _hStart
 
-	localOffset := offset + 5 + fieldOffsetIndex
+	size := int(binary.LittleEndian.Uint32(m[offset+_hStart:]))
+
+	localOffset := offset + _hStart + 5 + fieldOffsetIndex
 
 	fieldOffset := int(binary.LittleEndian.Uint32(m[localOffset:]))
 	fieldLen := int(binary.LittleEndian.Uint32(m[localOffset+4:]))

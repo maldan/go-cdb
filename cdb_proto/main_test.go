@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/maldan/go-cdb/cdb_proto"
 	"testing"
+	"time"
 )
 
 type Test struct {
@@ -15,8 +16,17 @@ type Test struct {
 func TestMyWrite(t *testing.T) {
 	table := cdb_proto.New[Test]("../db/test")
 
-	for i := 0; i < 10; i++ {
-		table.Insert(Test{FirstName: "A", LastName: "B", Phone: "C"})
+	tt := time.Now()
+	for i := 0; i < 1_000_000; i++ {
+		table.Insert(Test{FirstName: fmt.Sprintf("%08d", i), LastName: "B", Phone: "C"})
 	}
-	fmt.Printf("%v", &table)
+	fmt.Printf("%v\n", time.Since(tt))
+}
+
+func TestSimpleQuery(t *testing.T) {
+	table := cdb_proto.New[Test]("../db/test")
+
+	tt := time.Now()
+	table.Query("SELECT * FROM table WHERE FirstName == '00999999'")
+	fmt.Printf("%v\n", time.Since(tt))
 }

@@ -17,7 +17,7 @@ type QueryInfo struct {
 	Operation    string
 	SelectFields []string
 	Condition    []QueryExpression
-	typeInfo     reflect.Type
+	TypeInfo     reflect.Type
 }
 
 func parseWhere(queryInfo *QueryInfo, tuples []string) {
@@ -40,8 +40,8 @@ func parseSelect(queryInfo *QueryInfo, tuples []string) {
 
 	// Check source
 	if tuples[0] == "*" {
-		for i := 0; i < queryInfo.typeInfo.NumField(); i++ {
-			queryInfo.SelectFields = append(queryInfo.SelectFields, queryInfo.typeInfo.Field(i).Name)
+		for i := 0; i < queryInfo.TypeInfo.NumField(); i++ {
+			queryInfo.SelectFields = append(queryInfo.SelectFields, queryInfo.TypeInfo.Field(i).Name)
 		}
 	}
 
@@ -58,7 +58,7 @@ func parseSelect(queryInfo *QueryInfo, tuples []string) {
 
 func Query[T any](query string) (QueryInfo, error) {
 	queryInfo := QueryInfo{
-		typeInfo: reflect.TypeOf(*new(T)),
+		TypeInfo: reflect.TypeOf(*new(T)),
 	}
 
 	tuples := strings.Split(query, " ")
