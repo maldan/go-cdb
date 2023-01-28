@@ -7,9 +7,9 @@ import (
 )
 
 type Test struct {
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-	Phone     string `json:"phone"`
+	FirstName string `json:"firstName" id:"0"`
+	LastName  string `json:"lastName" id:"1" len:"32"`
+	Phone     string `json:"phone" id:"2" len:"64"`
 }
 
 func TestMyWrite(t *testing.T) {

@@ -20,7 +20,7 @@ func (d *DataTable[T]) open() {
 		}
 
 		// Init file, because 0 length file fails with memory mapping
-		if err = ioutil.WriteFile(d.Name, d.emptyHeader(), 0777); err != nil {
+		if err = ioutil.WriteFile(d.Name, pack.EmptyHeader[T](), 0777); err != nil {
 			panic(err)
 		}
 	}

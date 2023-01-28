@@ -5,9 +5,6 @@ import (
 	"os"
 )
 
-const headerMaxParallelOffset = 64
-const headerSize = 256
-
 type DataTable[T any] struct {
 	mem  mmap.MMap
 	file *os.File

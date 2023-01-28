@@ -8,9 +8,9 @@ import (
 )
 
 type Test struct {
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-	Phone     string `json:"phone"`
+	FirstName string `json:"firstName" id:"0"`
+	LastName  string `json:"lastName" id:"1"`
+	Phone     string `json:"phone" id:"2"`
 }
 
 func TestPack(t *testing.T) {
