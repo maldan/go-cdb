@@ -3,6 +3,7 @@ package cdb_proto
 import (
 	"errors"
 	"github.com/edsrzf/mmap-go"
+	"github.com/maldan/go-cdb/cdb_proto/pack"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -51,7 +52,7 @@ func (d *DataTable[T]) remap() {
 }
 
 func (d *DataTable[T]) Insert(v T) {
-	bytes := Pack(v)
+	bytes := pack.Pack(v)
 
 	// Get file size
 	stat, err := d.file.Stat()

@@ -2,8 +2,17 @@ package cdb_proto
 
 import (
 	"fmt"
+	"github.com/maldan/go-cdb/cdb_proto/pack"
 	"reflect"
 )
+
+// Query("SELECT * FROM table WHERE FirstName == 'Roman' AND LastName != 'Lox'")
+// Query("SELECT Id, Phone FROM table WHERE FirstName LIKE '%Lox'")
+// Query("UPDATE table SET FirstName='Gavno' WHERE FirstName == 'Roman' LIMIT 1")
+// Query("INSERT INTO table ")
+
+// Example Find("FirstName == $0 && LastName != $0", 0)
+// Update({ Set: "", Values: []any{} }, "")
 
 func (d *DataTable[T]) Find(m []byte, field string, v string) {
 	offset := 0
@@ -23,7 +32,7 @@ func (d *DataTable[T]) Find(m []byte, field string, v string) {
 	}
 
 	for {
-		size, fieldLen, startData := readHeader(m, offset, fieldOffsetIndex)
+		size, fieldLen, startData := pack.ReadHeader(m, offset, fieldOffsetIndex)
 		fieldData := m[startData : startData+fieldLen]
 
 		isFound := comparator(strAsBytes, fieldData)

@@ -1,18 +1,24 @@
-package cdb_proto_test
+package pack_test
 
 import (
 	"encoding/binary"
-	"github.com/maldan/go-cdb/cdb_proto"
+	"github.com/maldan/go-cdb/cdb_proto/pack"
 	"reflect"
 	"testing"
 )
+
+type Test struct {
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Phone     string `json:"phone"`
+}
 
 func TestPack(t *testing.T) {
 	v := Test{FirstName: "Roman", LastName: "Baran", Phone: "Oman"}
 	typeOf := reflect.TypeOf(Test{})
 	valueOf := reflect.ValueOf(v)
 
-	bytes := cdb_proto.Pack(v)
+	bytes := pack.Pack(v)
 
 	// Check header
 	if bytes[0] != 0x12 || bytes[1] != 0x34 {

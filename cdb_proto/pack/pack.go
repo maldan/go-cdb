@@ -1,4 +1,4 @@
-package cdb_proto
+package pack
 
 import (
 	"encoding/binary"
@@ -11,7 +11,7 @@ const _hSize = 4
 const _hTotal = 1
 const _hEnd = 2
 
-func readHeader(m []byte, offset int, fieldOffsetIndex int) (int, int, int) {
+func ReadHeader(m []byte, offset int, fieldOffsetIndex int) (int, int, int) {
 	size := int(binary.LittleEndian.Uint32(m[offset:]))
 
 	localOffset := offset + 5 + fieldOffsetIndex
