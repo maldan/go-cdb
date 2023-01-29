@@ -2,6 +2,7 @@ package pack_test
 
 import (
 	"encoding/binary"
+	"github.com/maldan/go-cdb/cdb_proto/core"
 	"github.com/maldan/go-cdb/cdb_proto/pack"
 	"reflect"
 	"testing"
@@ -31,7 +32,7 @@ func TestPack(t *testing.T) {
 	}
 
 	// Check total size
-	totalSize := int(binary.LittleEndian.Uint32(bytes[2:]))
+	totalSize := int(binary.LittleEndian.Uint32(bytes[core.RecordStart:]))
 	if totalSize != len(bytes) {
 		t.Fatalf("%v", "Fuck")
 	}
@@ -42,13 +43,16 @@ func TestPack(t *testing.T) {
 	}
 
 	// Check total fields
-	if uint8(typeOf.NumField()) != bytes[6] {
+	if uint8(typeOf.NumField()) != bytes[core.RecordStart+core.RecordSize] {
 		t.Fatalf("%v", "Fuck")
 	}
 
+	// Go to offset table
+	offsetTable := core.RecordStart + core.RecordSize + core.RecordFlags
+
 	// Check fields len
 	for i := 0; i < typeOf.NumField(); i++ {
-		fieldLen := int(binary.LittleEndian.Uint32(bytes[7+i*8+4:]))
+		fieldLen := int(binary.LittleEndian.Uint32(bytes[offsetTable+i*core.RecordLenOff+4:]))
 		if valueOf.Field(i).Len() != fieldLen {
 			t.Fatalf("%v", "Fuck")
 		}
@@ -56,8 +60,8 @@ func TestPack(t *testing.T) {
 
 	// Check values
 	for i := 0; i < typeOf.NumField(); i++ {
-		fieldOffset := int(binary.LittleEndian.Uint32(bytes[7+i*8:]))
-		fieldLen := int(binary.LittleEndian.Uint32(bytes[7+i*8+4:]))
+		fieldOffset := int(binary.LittleEndian.Uint32(bytes[offsetTable+i*core.RecordLenOff:]))
+		fieldLen := int(binary.LittleEndian.Uint32(bytes[offsetTable+i*core.RecordLenOff+4:]))
 		fieldData := bytes[fieldOffset : fieldOffset+fieldLen]
 
 		if valueOf.Field(i).String() != string(fieldData) {

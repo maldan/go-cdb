@@ -1,11 +1,5 @@
 package cdb_proto
 
-import (
-	"fmt"
-	"github.com/maldan/go-cdb/cdb_proto/pack"
-	"reflect"
-)
-
 // Query("SELECT * FROM table WHERE FirstName == 'Roman' AND LastName != 'Lox'")
 // Query("SELECT Id, Phone FROM table WHERE FirstName LIKE '%Lox'")
 // Query("UPDATE table SET FirstName='Gavno' WHERE FirstName == 'Roman' LIMIT 1")
@@ -14,7 +8,7 @@ import (
 // Example Find("FirstName == $0 && LastName != $0", 0)
 // Update({ Set: "", Values: []any{} }, "")
 
-func (d *DataTable[T]) Find(m []byte, field string, v string) {
+/*func (d *DataTable[T]) Find(m []byte, field string, v string) {
 	offset := 0
 
 	strAsBytes := []byte(v)
@@ -47,4 +41,4 @@ func (d *DataTable[T]) Find(m []byte, field string, v string) {
 			break
 		}
 	}
-}
+}*/

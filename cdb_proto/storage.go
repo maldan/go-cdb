@@ -10,6 +10,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strconv"
 )
 
 func (d *DataTable[T]) open() {
@@ -65,6 +67,19 @@ func (d *DataTable[T]) readHeader() {
 		d.mem[8],
 	)
 
+	// Calculate field offset
+	typeOf := reflect.TypeOf(*new(T))
+	d.structInfo.FieldOffset = make([]uintptr, 64)
+	for i := 0; i < typeOf.NumField(); i++ {
+		if typeOf.Field(i).Tag.Get("id") != "" {
+			id, err := strconv.Atoi(typeOf.Field(i).Tag.Get("id"))
+			if err != nil {
+				panic(err)
+			}
+			d.structInfo.FieldOffset[id] = typeOf.Field(i).Offset
+		}
+	}
+
 	offset := 8 + 1 + 8 + 8
 	amount := int(d.mem[offset])
 	fmt.Printf("Fields: %v\n", amount)
@@ -73,7 +88,8 @@ func (d *DataTable[T]) readHeader() {
 		fieldId := d.mem[offset]
 		fmt.Printf("\tId: %v", fieldId)
 		offset += 1
-		fmt.Printf("\tType: %v", d.mem[offset])
+		fieldType := d.mem[offset]
+		fmt.Printf("\tType: %v", fieldType)
 		offset += 1
 		fmt.Printf("\t\tCapacity: %v", binary.LittleEndian.Uint32(d.mem[offset:]))
 		offset += 4
@@ -87,6 +103,9 @@ func (d *DataTable[T]) readHeader() {
 
 		// Set map
 		d.structInfo.FieldNameToId[fieldName] = int(fieldId)
+		d.structInfo.FieldName = append(d.structInfo.FieldName, fieldName)
+		d.structInfo.FieldType = append(d.structInfo.FieldType, int(fieldType))
+		// d.structInfo.FieldOffset = append(d.structInfo.FieldType, typeOf)
 	}
 
 	d.structInfo.FieldCount = amount

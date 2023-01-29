@@ -2,56 +2,15 @@ package cdb_proto
 
 import (
 	"encoding/binary"
-	"fmt"
 	"github.com/maldan/go-cdb/cdb_proto/core"
 	"github.com/maldan/go-cdb/cdb_proto/pack"
 	"github.com/maldan/go-cdb/cdb_proto/parse"
 )
 
-func (d *DataTable[T]) Query(query string) {
+func (d *DataTable[T]) Query(query string) SearchResult[T] {
 	q, _ := parse.Query[T](query)
 
-	d.Select(q)
-}
-
-func OpStrCmp(left func() string, right func() string) bool {
-	a := left()
-	b := right()
-	return a == b
-}
-
-func OpAnd(left func() any, right func() any) bool {
-	a := left()
-	b := right()
-	return a == b
-}
-
-type E2 struct {
-	Mem   []byte
-	Table []byte
-	Op    string
-
-	LeftId    int
-	LeftSize  int
-	LeftType  int
-	LeftValue any
-	LeftE2    *E2
-
-	RightId    int
-	RightSize  int
-	RightType  int
-	RightValue any
-	RightE2    *E2
-}
-
-func (e E2) Do() {
-
-}
-
-func pop[T any](s *[]T) T {
-	v := (*s)[len(*s)-1]
-	*s = (*s)[0 : len(*s)-1]
-	return v
+	return d.Select(q)
 }
 
 type passStack struct {
@@ -111,13 +70,16 @@ func CheckExpression[T any](d *DataTable[T], offset int, table []byte, ops []par
 	return stack[0]
 }
 
-func (d *DataTable[T]) Select(query parse.QueryInfo) {
+func (d *DataTable[T]) Select(query parse.QueryInfo) SearchResult[T] {
 	offset := core.HeaderSize
 
 	stack := passStack{
 		stack:     make([]bool, 32),
 		byteStack: make([][]byte, 32),
 	}
+
+	// Return
+	searchResult := SearchResult[T]{}
 
 	for i := 0; i < len(query.WhereCondition); i++ {
 		if query.WhereCondition[i].Type == core.TokenIdentifier {
@@ -135,12 +97,15 @@ func (d *DataTable[T]) Select(query parse.QueryInfo) {
 		isFound := CheckExpression(d, offset, offTable, query.WhereCondition, stack)
 
 		// fmt.Printf("%v\n", isFound)
-		/*size, fieldLen, startData := pack.ReadHeader(d.mem, offset, fieldOffsetIndex)
-		fieldData := d.mem[startData : startData+fieldLen]
-		isFound := comparator(strAsBytes, fieldData)*/
+		/*
+			size, fieldLen, startData := pack.ReadHeader(d.mem, offset, fieldOffsetIndex)
+			fieldData := d.mem[startData : startData+fieldLen]
+			isFound := comparator(strAsBytes, fieldData)
+		*/
 
 		if isFound {
-			fmt.Printf("Fount at %v\n", offset)
+			searchResult.table = d
+			searchResult.Result = append(searchResult.Result, Record{offset: offset, size: size})
 			break
 		}
 
@@ -149,4 +114,6 @@ func (d *DataTable[T]) Select(query parse.QueryInfo) {
 			break
 		}
 	}
+
+	return searchResult
 }

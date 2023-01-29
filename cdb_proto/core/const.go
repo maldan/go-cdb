@@ -22,3 +22,20 @@ const TokenString = 0
 const TokenOp = 1
 const TokenIdentifier = 2
 const TokenNumber = 3
+
+// RecordStart is 2 bytes 0x1234 of header for each record
+const RecordStart = 2
+const RecordSize = 4
+const RecordFlags = 1
+const RecordEnd = 2
+
+// RecordLenOff is 8 bytes size for offset and length for each field of struct
+const RecordLenOff = 8
+
+type StructInfo struct {
+	FieldCount    int
+	FieldNameToId map[string]int
+	FieldType     []int
+	FieldName     []string
+	FieldOffset   []uintptr
+}
