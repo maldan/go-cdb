@@ -110,22 +110,3 @@ func (d *DataTable[T]) readHeader() {
 
 	d.structInfo.FieldCount = amount
 }
-
-func (d *DataTable[T]) Insert(v T) {
-	bytes := pack.Pack(v)
-
-	// Get file size
-	stat, err := d.file.Stat()
-	if err != nil {
-		panic(err)
-	}
-
-	// Write at end of file
-	n, err := d.file.WriteAt(bytes, stat.Size())
-	if err != nil {
-		panic(err)
-	}
-	if n != len(bytes) {
-		panic(errors.New("incomplete writing"))
-	}
-}

@@ -12,6 +12,15 @@ type Test struct {
 	FirstName string `json:"firstName" id:"0"`
 	LastName  string `json:"lastName" id:"1" len:"32"`
 	Phone     string `json:"phone" id:"2" len:"64"`
+	Sex       string `json:"sex" id:"3" len:"64"`
+	Rock      string `json:"rock" id:"4" len:"64"`
+	Gas       string `json:"gas" id:"5" len:"64"`
+	Yas       string `json:"yas" id:"6" len:"64"`
+	Taj       string `json:"taj" id:"7" len:"64"`
+	Mahal     string `json:"mahal" id:"8" len:"64"`
+	Ebal      string `json:"ebal" id:"9" len:"64"`
+	Sasal     string `json:"sasal" id:"10" len:"64"`
+	Sasal2    string `json:"sasal2" id:"11" len:"64"`
 }
 
 func TestMyWrite(t *testing.T) {
@@ -20,9 +29,18 @@ func TestMyWrite(t *testing.T) {
 	tt := time.Now()
 	for i := 0; i < 1_000_000; i++ {
 		table.Insert(Test{
-			FirstName: fmt.Sprintf("LO %08d", i),
-			LastName:  fmt.Sprintf("EB %08d", i),
-			Phone:     fmt.Sprintf("DE %08d", i),
+			FirstName: fmt.Sprintf("%08d", i),
+			LastName:  "",
+			Phone:     "1234567",
+			Sex:       "1234567",
+			Rock:      "1234567",
+			Gas:       "1234567",
+			Yas:       "1234567",
+			Taj:       "1234567",
+			Mahal:     "1234567",
+			Ebal:      "1234567",
+			Sasal:     "1234567",
+			Sasal2:    "1234567",
 		})
 	}
 	fmt.Printf("%v\n", time.Since(tt))
@@ -32,13 +50,65 @@ func TestSimpleQuery(t *testing.T) {
 	table := cdb_proto.New[Test]("../db/test")
 
 	tt := time.Now()
-	rs := table.Query("SELECT * FROM table WHERE FirstName == 'LO 00999999'")
+	rs := table.Query("SELECT * FROM table WHERE FirstName == '00999999' AND Phone == '1234567'")
+	fmt.Printf("T1: %v\n", time.Since(tt))
+
+	oo := rs.Unpack()
+	cmhp_print.Print(oo)
+
+	/*tt = time.Now()
+	table.Query("SELECT * FROM table WHERE FirstName == '00999999'")
+	fmt.Printf("T2: %v\n", time.Since(tt))*/
+}
+
+func TestCrazyQuery(t *testing.T) {
+	table := cdb_proto.New[Test]("../db/test")
+
+	tt := time.Now()
+	rs := table.Find([]string{"FirstName"}, func(test *Test) bool {
+		return test.FirstName == "00999999"
+	})
 	fmt.Printf("T1: %v\n", time.Since(tt))
 
 	oo := rs.Unpack()
 	cmhp_print.Print(oo)
 
 	tt = time.Now()
-	table.Query("SELECT * FROM table WHERE FirstName == 'LO 00999999'")
+	table.Find([]string{"FirstName", "Phone"}, func(test *Test) bool {
+		return test.FirstName == "00999999"
+	})
+	fmt.Printf("T1: %v\n", time.Since(tt))
+}
+
+func TestX2(t *testing.T) {
+	type Gas struct {
+		Id int
+		S  []string
+	}
+
+	xyz := make([]Gas, 1_000_000)
+	for i := 0; i < 1_000_000; i++ {
+		xyz[i].Id = 1_000_000 - 1
+	}
+
+	a := 0
+	tt := time.Now()
+	for i := 0; i < 1_000_000; i++ {
+		a += xyz[i].Id
+	}
 	fmt.Printf("T2: %v\n", time.Since(tt))
+	fmt.Printf("%v\n", a)
+	/*fmt.Printf("%v\n", xyz[0])
+
+	tt := time.Now()
+	sort.SliceStable(xyz, func(i, j int) bool {
+		return xyz[i].Id > xyz[j].Id
+	})
+	fmt.Printf("T2: %v\n", time.Since(tt))
+
+	fmt.Printf("%v\n", xyz[0])
+
+	for {
+		time.Sleep(time.Second)
+	}*/
 }
