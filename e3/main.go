@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
-	"github.com/maldan/go-cdb/cdb_proto"
+	"github.com/maldan/go-cdb/cdb_proto/harray"
 	"github.com/maldan/go-cmhp/cmhp_print"
-	"time"
 )
 
 type Test struct {
@@ -22,41 +20,15 @@ type Test struct {
 	Sasal2    string `json:"sasal2" id:"11" len:"64"`
 }
 
-func f1() {
-	table := cdb_proto.New[Test]("../db/test")
-
-	tt := time.Now()
-	rs := table.Query("SELECT * FROM table WHERE FirstName == '00999999'")
-	fmt.Printf("T1: %v\n", time.Since(tt))
-
-	oo := rs.Unpack()
-	cmhp_print.Print(oo)
-
-	tt = time.Now()
-	table.Query("SELECT * FROM table WHERE FirstName == '00999999'")
-	fmt.Printf("T2: %v\n", time.Since(tt))
-}
-
-func f2() {
-	table := cdb_proto.New[Test]("../db/test")
-
-	tt := time.Now()
-	rs := table.CrazySelect([]string{"FirstName"}, func(test *Test) bool {
-		return test.FirstName == "00999999"
-	})
-	fmt.Printf("T1: %v\n", time.Since(tt))
-
-	oo := rs.Unpack()
-	cmhp_print.Print(oo)
-
-	tt = time.Now()
-	table.CrazySelect([]string{"FirstName"}, func(test *Test) bool {
-		return test.FirstName == "00999999"
-	})
-	fmt.Printf("T1: %v\n", time.Since(tt))
-}
-
 func main() {
-	f1()
-	f2()
+	harr := harray.New()
+	harr.Add("a", 1)
+	cmhp_print.PrintBytesColored(harr.Memory, 32, []cmhp_print.ColorRange{
+		{0, 2, cmhp_print.BgRed},
+		{2, 4, cmhp_print.BgGreen},
+		{6, 8, cmhp_print.BgRed},
+		{6 + 8, 8 * 8, cmhp_print.BgBlue},
+		{6 + 8 + 8*8, 1, cmhp_print.BgRed},
+		{6 + 8 + 8*8 + 1, 4 * 8, cmhp_print.BgGreen},
+	})
 }
