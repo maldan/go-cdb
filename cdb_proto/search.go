@@ -54,9 +54,13 @@ func (d *DataTable[T]) ForEach(fn func(offset int) bool) {
 
 	for {
 		size := int(binary.LittleEndian.Uint32(d.mem[offset+core.RecordStart:]))
+		flags := int(d.mem[offset+core.RecordStart+core.RecordSize])
 
-		if !fn(offset) {
-			break
+		// If field not deleted
+		if flags&core.MaskDeleted != core.MaskDeleted {
+			if !fn(offset) {
+				break
+			}
 		}
 
 		offset += size
@@ -73,37 +77,8 @@ func (d *DataTable[T]) Find(fieldList []string, where func(*T) bool) SearchResul
 	mapper := ValueMapper[T]{}
 	mapper.Map(d.structInfo, fieldList)
 
-	/*cc := new(T)
-	typeOf := reflect.TypeOf(cc).Elem()
-	start := unsafe.Pointer(cc)
-
-	idTable := make([]int, 0)
-	typeTable := make([]int, 0)
-	outOffset := make([]unsafe.Pointer, 0)
-
-	// Fill id table
-	for i := 0; i < len(fieldList); i++ {
-		idTable = append(idTable, d.structInfo.FieldNameToId[fieldList[i]]*8)
-		typeTable = append(typeTable, d.structInfo.FieldType[idTable[i]/8])
-		f, ok := typeOf.FieldByName(fieldList[i])
-		if !ok {
-			panic("FNAF")
-		}
-		outOffset = append(outOffset, unsafe.Add(start, f.Offset))
-	}*/
-
 	d.ForEach(func(offset int) bool {
 		size, offTable := pack.ReadHeader2(d.mem, offset)
-
-		// Fill struct
-		/*for i := 0; i < len(idTable); i++ {
-			vOff := int(binary.LittleEndian.Uint32(offTable[idTable[i]:]))
-			vLen := int(binary.LittleEndian.Uint32(offTable[idTable[i]+4:]))
-
-			if typeTable[i] == core.TString {
-				*(*[]byte)(outOffset[i]) = d.mem[offset+vOff : offset+vOff+vLen]
-			}
-		}*/
 
 		mapper.Fill(offset, d.mem, offTable)
 

@@ -12,6 +12,9 @@ type DataTable[T any] struct {
 	file       *os.File
 	structInfo core.StructInfo
 
+	// Table config
+	RecordSizeInBytes uint8
+
 	Name string
 }
 

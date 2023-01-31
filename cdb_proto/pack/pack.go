@@ -13,21 +13,35 @@ import (
 /**
 Record struct
 
-[1 2 3 4] - start of struct
-[0 0 0 0] - size of struct
+[12] - start of struct.
+[0 0 0 0] - size of struct. Make configurable
 [0] - flags of struct
+0      - is removed
+0	   - reserved
+000000 - up to 64 fields
 
-// offset table
+// look up table
 [
-	[0 0 0 0] - offset to field data
-	[0 0 0 0] - length of field data
+	[0 0 0 0] - offset to field data. Make configurable
 ] * totalFields
-
 
 // data table
 [
 	[...] - field data
 ] * totalFields
+
+[34] - end of struct
+*/
+
+/**
+[12]  	  - start of struct.
+[0 0 0 0] - size
+[0]       - flag
+[
+  [0]     - id
+  [...]   - data
+] * totalFields
+[34]      - end of struct
 */
 
 /*const _hStart = 2
@@ -49,10 +63,15 @@ const _hEnd = 2*/
 	return size, fieldLen, offset + fieldOffset
 }*/
 
+func ReadOffsetTable(startOfRecord []byte) []byte {
+	// size := int(binary.LittleEndian.Uint32(startOfRecord[core.RecordStart:]))
+	total := int(startOfRecord[core.RecordStart+core.RecordSize])
+	return startOfRecord[core.RecordStart+core.RecordSize+core.RecordFlags : core.RecordStart+core.RecordSize+core.RecordFlags+total*core.RecordLenOff]
+}
+
 func ReadHeader2(m []byte, offset int) (int, []byte) {
 	size := int(binary.LittleEndian.Uint32(m[offset+core.RecordStart:]))
-	total := int(m[offset+core.RecordStart+core.RecordSize])
-
+	total := int(m[offset+core.RecordStart+core.RecordSize]) & core.MaskTotalFields
 	return size, m[offset+core.RecordStart+core.RecordSize+core.RecordFlags : offset+core.RecordStart+core.RecordSize+core.RecordFlags+total*8]
 }
 
@@ -74,7 +93,7 @@ func Unpack[T any](st core.StructInfo, bytes []byte) (T, error) {
 	fmt.Printf("%v\n", size)
 
 	// Read total
-	total := int(bytes[offset])
+	total := int(bytes[offset]) & core.MaskTotalFields
 	offset += core.RecordFlags
 
 	// Start of struct

@@ -32,6 +32,9 @@ const RecordEnd = 2
 // RecordLenOff is 8 bytes size for offset and length for each field of struct
 const RecordLenOff = 8
 
+const MaskDeleted = 0b1000_0000
+const MaskTotalFields = 0b0011_1111
+
 type StructInfo struct {
 	FieldCount    int
 	FieldNameToId map[string]int

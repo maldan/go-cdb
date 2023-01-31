@@ -30,17 +30,17 @@ func TestMyWrite(t *testing.T) {
 	for i := 0; i < 1_000_000; i++ {
 		table.Insert(Test{
 			FirstName: fmt.Sprintf("%08d", i),
-			LastName:  "",
-			Phone:     "1234567",
-			Sex:       "1234567",
-			Rock:      "1234567",
-			Gas:       "1234567",
-			Yas:       "1234567",
-			Taj:       "1234567",
-			Mahal:     "1234567",
-			Ebal:      "1234567",
-			Sasal:     "1234567",
-			Sasal2:    "1234567",
+			LastName:  "00000000",
+			Phone:     "11111111",
+			Sex:       "00000000",
+			Rock:      "00000000",
+			Gas:       "00000000",
+			Yas:       "00000000",
+			Taj:       "00000000",
+			Mahal:     "00000000",
+			Ebal:      "00000000",
+			Sasal:     "00000000",
+			Sasal2:    "XXXXXXXX",
 		})
 	}
 	fmt.Printf("%v\n", time.Since(tt))
@@ -66,7 +66,7 @@ func TestCrazyQuery(t *testing.T) {
 
 	tt := time.Now()
 	rs := table.Find([]string{"FirstName"}, func(test *Test) bool {
-		return test.FirstName == "00999999"
+		return test.FirstName == "00000000"
 	})
 	fmt.Printf("T1: %v\n", time.Since(tt))
 
@@ -75,9 +75,30 @@ func TestCrazyQuery(t *testing.T) {
 
 	tt = time.Now()
 	table.Find([]string{"FirstName", "Phone"}, func(test *Test) bool {
-		return test.FirstName == "00999999"
+		return test.FirstName == "..."
 	})
 	fmt.Printf("T1: %v\n", time.Since(tt))
+}
+
+func TestDelete(t *testing.T) {
+	table := cdb_proto.New[Test]("../db/test")
+
+	table.Delete([]string{"FirstName"}, func(test *Test) bool {
+		return test.FirstName == "00000000"
+	})
+}
+
+func TestX3(t *testing.T) {
+	a := 0
+	tt := time.Now()
+	for i := 0; i < 1_000_000; i++ {
+		a = 0b0000_1111
+		for j := 0; j < 64; j++ {
+			a = a << 1
+		}
+	}
+	fmt.Printf("T2: %v\n", time.Since(tt))
+	fmt.Printf("%v\n", a)
 }
 
 func TestX2(t *testing.T) {
