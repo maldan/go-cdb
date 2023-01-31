@@ -3,7 +3,6 @@ package cdb_proto
 import (
 	"encoding/binary"
 	"github.com/maldan/go-cdb/cdb_proto/core"
-	"github.com/maldan/go-cdb/cdb_proto/pack"
 )
 
 // Query("SELECT * FROM table WHERE FirstName == 'Roman' AND LastName != 'Lox'")
@@ -49,7 +48,7 @@ import (
 	}
 }*/
 
-func (d *DataTable[T]) ForEach(fn func(offset int) bool) {
+func (d *DataTable[T]) ForEach(fn func(offset int, size int) bool) {
 	offset := core.HeaderSize
 
 	for {
@@ -58,7 +57,7 @@ func (d *DataTable[T]) ForEach(fn func(offset int) bool) {
 
 		// If field not deleted
 		if flags&core.MaskDeleted != core.MaskDeleted {
-			if !fn(offset) {
+			if !fn(offset, size) {
 				break
 			}
 		}
@@ -75,12 +74,10 @@ func (d *DataTable[T]) Find(fieldList []string, where func(*T) bool) SearchResul
 	searchResult := SearchResult[T]{}
 
 	mapper := ValueMapper[T]{}
-	mapper.Map(d.structInfo, fieldList)
+	mapper.Map2(d.structInfo, fieldList)
 
-	d.ForEach(func(offset int) bool {
-		size, offTable := pack.ReadHeader2(d.mem, offset)
-
-		mapper.Fill(offset, d.mem, offTable)
+	d.ForEach(func(offset int, size int) bool {
+		mapper.Fill2(offset+core.RecordStart+core.RecordSize+core.RecordFlags, d.mem)
 
 		if where(&mapper.Container) {
 			searchResult.table = d

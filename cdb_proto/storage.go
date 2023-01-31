@@ -1,9 +1,7 @@
 package cdb_proto
 
 import (
-	"encoding/binary"
 	"errors"
-	"fmt"
 	"github.com/edsrzf/mmap-go"
 	"github.com/maldan/go-cdb/cdb_proto/pack"
 	"io/fs"
@@ -61,11 +59,11 @@ func (d *DataTable[T]) readHeader() {
 		panic("non db")
 	}
 
-	fmt.Printf("| AI: %v | Total: %v | Version %v |\n",
+	/*fmt.Printf("| AI: %v | Total: %v | Version %v |\n",
 		binary.LittleEndian.Uint64(d.mem[9:]),
 		binary.LittleEndian.Uint64(d.mem[9+8:]),
 		d.mem[8],
-	)
+	)*/
 
 	// Calculate field offset
 	typeOf := reflect.TypeOf(*new(T))
@@ -82,23 +80,23 @@ func (d *DataTable[T]) readHeader() {
 
 	offset := 8 + 1 + 8 + 8
 	amount := int(d.mem[offset])
-	fmt.Printf("Fields: %v\n", amount)
+	//fmt.Printf("Fields: %v\n", amount)
 	offset += 1
 	for i := 0; i < amount; i++ {
 		fieldId := d.mem[offset]
-		fmt.Printf("\tId: %v", fieldId)
+		//fmt.Printf("\tId: %v", fieldId)
 		offset += 1
 		fieldType := d.mem[offset]
-		fmt.Printf("\tType: %v", fieldType)
+		//fmt.Printf("\tType: %v", fieldType)
 		offset += 1
-		fmt.Printf("\t\tCapacity: %v", binary.LittleEndian.Uint32(d.mem[offset:]))
+		//fmt.Printf("\t\tCapacity: %v", binary.LittleEndian.Uint32(d.mem[offset:]))
 		offset += 4
 
 		fieldLen := int(d.mem[offset])
 		// fmt.Printf("\tLen: %v\n", fieldLen)
 		offset += 1
 		fieldName := string(d.mem[offset : offset+fieldLen])
-		fmt.Printf("\t\tName: %v\n", fieldName)
+		//fmt.Printf("\t\tName: %v\n", fieldName)
 		offset += fieldLen
 
 		// Set map

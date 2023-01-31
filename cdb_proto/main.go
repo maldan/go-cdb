@@ -18,6 +18,13 @@ type DataTable[T any] struct {
 	Name string
 }
 
+func (d *DataTable[T]) Debug__GetMem() mmap.MMap {
+	return d.mem
+}
+func (d *DataTable[T]) Debug__GetStructInfo() core.StructInfo {
+	return d.structInfo
+}
+
 type Record struct {
 	offset int
 	size   int

@@ -14,6 +14,14 @@ type Test struct {
 	Phone     string `json:"phone" id:"2"`
 }
 
+/*func TestUnpack(t *testing.T) {
+	v := Test{FirstName: "Roman", LastName: "Baran", Phone: "Oman"}
+	bytes := pack.Pack(v)
+	v2, _ := pack.Unpack(bytes)
+	fmt.Printf("%v\n", v2)
+}
+*/
+
 func TestPack(t *testing.T) {
 	v := Test{FirstName: "Roman", LastName: "Baran", Phone: "Oman"}
 	typeOf := reflect.TypeOf(Test{})
@@ -22,12 +30,12 @@ func TestPack(t *testing.T) {
 	bytes := pack.Pack(v)
 
 	// Check header
-	if bytes[0] != 0x12 || bytes[1] != 0x34 {
+	if bytes[0] != core.RecordStartMark {
 		t.Fatalf("%v", "Fuck")
 	}
 
 	// Check end
-	if bytes[len(bytes)-2] != 0x56 || bytes[len(bytes)-1] != 0x78 {
+	if bytes[len(bytes)-1] != core.RecordEndMark {
 		t.Fatalf("%v", "Fuck")
 	}
 
@@ -38,7 +46,7 @@ func TestPack(t *testing.T) {
 	}
 
 	// Check correctness
-	if bytes[totalSize-2] != 0x56 || bytes[totalSize-1] != 0x78 {
+	if bytes[totalSize-1] != core.RecordEndMark {
 		t.Fatalf("%v", "Fuck")
 	}
 
@@ -50,22 +58,21 @@ func TestPack(t *testing.T) {
 	// Go to offset table
 	offsetTable := core.RecordStart + core.RecordSize + core.RecordFlags
 
-	// Check fields len
+	// Read fields
 	for i := 0; i < typeOf.NumField(); i++ {
-		fieldLen := int(binary.LittleEndian.Uint32(bytes[offsetTable+i*core.RecordLenOff+4:]))
-		if valueOf.Field(i).Len() != fieldLen {
-			t.Fatalf("%v", "Fuck")
-		}
-	}
+		// Read ID
+		// bytes[offsetTable]
+		offsetTable += 1
 
-	// Check values
-	for i := 0; i < typeOf.NumField(); i++ {
-		fieldOffset := int(binary.LittleEndian.Uint32(bytes[offsetTable+i*core.RecordLenOff:]))
-		fieldLen := int(binary.LittleEndian.Uint32(bytes[offsetTable+i*core.RecordLenOff+4:]))
-		fieldData := bytes[fieldOffset : fieldOffset+fieldLen]
+		// Read str length
+		fieldLen := int(binary.LittleEndian.Uint32(bytes[offsetTable:]))
+		offsetTable += 4
 
+		// Check data
+		fieldData := bytes[offsetTable : offsetTable+fieldLen]
 		if valueOf.Field(i).String() != string(fieldData) {
 			t.Fatalf("%v", "Fuck")
 		}
+		offsetTable += fieldLen
 	}
 }

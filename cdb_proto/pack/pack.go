@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/maldan/go-cdb/cdb_proto/core"
-	"github.com/maldan/go-cmhp/cmhp_byte"
 	"reflect"
 	"unsafe"
 )
@@ -80,12 +79,10 @@ func Unpack[T any](st core.StructInfo, bytes []byte) (T, error) {
 	offset := 0
 
 	// Check header
-	if bytes[0] != 0x12 || bytes[1] != 0x34 {
+	if bytes[0] != core.RecordStartMark {
 		return out, errors.New("unknown header")
 	}
 	offset += core.RecordStart
-
-	// @TODO Check footer
 
 	// Read size
 	size := binary.LittleEndian.Uint32(bytes[offset:])
@@ -101,13 +98,9 @@ func Unpack[T any](st core.StructInfo, bytes []byte) (T, error) {
 
 	// Read table
 	for i := 0; i < total; i++ {
-		fieldOff := int(binary.LittleEndian.Uint32(bytes[offset:]))
+		/*fieldOff := int(binary.LittleEndian.Uint32(bytes[offset:]))
 		fieldLen := int(binary.LittleEndian.Uint32(bytes[offset+4:]))
 		fieldType := st.FieldType[i]
-
-		/*fmt.Printf("OFF: %v\n", fieldOff)
-		fmt.Printf("LN: %v\n", fieldLen)
-		fmt.Printf("TT: %v\n", fieldType)*/
 
 		// Read data from table
 		if fieldType == core.TString {
@@ -115,7 +108,25 @@ func Unpack[T any](st core.StructInfo, bytes []byte) (T, error) {
 			*(*[]byte)(unsafe.Add(start, st.FieldOffset[i])) = make([]byte, len(blob))
 			copy(*(*[]byte)(unsafe.Add(start, st.FieldOffset[i])), blob)
 		}
-		offset += core.RecordLenOff
+		offset += core.RecordLenOff*/
+
+		// Id
+		// fieldId := bytes[offset]
+		// offset += 1
+
+		fieldType := st.FieldType[i]
+
+		// Len
+		fieldLen := int(bytes[offset])
+		offset += 1
+
+		// Copy
+		if fieldType == core.TString {
+			blob := bytes[offset : offset+fieldLen]
+			*(*[]byte)(unsafe.Add(start, st.FieldOffset[i])) = make([]byte, len(blob))
+			copy(*(*[]byte)(unsafe.Add(start, st.FieldOffset[i])), blob)
+			offset += fieldLen
+		}
 	}
 
 	return out, nil
@@ -134,9 +145,10 @@ func Pack[T any](v T) []byte {
 	// Calculate size of data
 	sizeOfEachPart := make([]int, 0)
 	for i := 0; i < typeOf.NumField(); i++ {
-		size += core.RecordLenOff // Offset to field data + size of field data
-
+		// size += core.RecordLenOff // Offset to field data + size of field data
+		// size += 1 // field id
 		if typeOf.Field(i).Type.Kind() == reflect.String {
+			size += 1 // length of string
 			size += valueOf.Field(i).Len()
 			sizeOfEachPart = append(sizeOfEachPart, valueOf.Field(i).Len())
 		}
@@ -146,15 +158,13 @@ func Pack[T any](v T) []byte {
 	out := make([]byte, size)
 
 	// Set header
-	out[0] = 0x12
-	out[1] = 0x34
+	out[0] = core.RecordStartMark
 
 	// Set end
-	out[size-2] = 0x56
-	out[size-1] = 0x78
+	out[size-1] = core.RecordEndMark
 
 	// Set size
-	cmhp_byte.From32ToBuffer(&size, &out, core.RecordStart)
+	binary.LittleEndian.PutUint32(out[core.RecordStart:], uint32(size))
 
 	// Set flags
 	out[core.RecordStart+core.RecordSize] = uint8(total)
@@ -162,23 +172,23 @@ func Pack[T any](v T) []byte {
 	// Short name
 	ssf := core.RecordStart + core.RecordSize + core.RecordFlags
 
-	// Set offsets and size
-	firstOffset := ssf + (core.RecordLenOff * total)
+	// Write fields
+	startOffset := ssf
 	for i := 0; i < typeOf.NumField(); i++ {
-		cmhp_byte.From32ToBuffer(&firstOffset, &out, ssf+(i*core.RecordLenOff))
-		cmhp_byte.From32ToBuffer(&sizeOfEachPart[i], &out, ssf+(i*core.RecordLenOff)+4)
-		firstOffset += sizeOfEachPart[i]
-	}
+		//out[startOffset] = uint8(cmhp_convert.StrToInt(typeOf.Field(i).Tag.Get("id")))
+		//startOffset += 1
 
-	// Copy data
-	firstOffset = ssf + (core.RecordLenOff * total)
-	for i := 0; i < typeOf.NumField(); i++ {
+		// Set str length
+		binary.LittleEndian.PutUint32(out[startOffset:], uint32(sizeOfEachPart[i]))
+		startOffset += 1
+
+		// Copy content
 		if typeOf.Field(i).Type.Kind() == reflect.String {
 			// Copy data
-			copy(out[firstOffset:], valueOf.Field(i).Interface().(string))
+			copy(out[startOffset:], valueOf.Field(i).Interface().(string))
 
 			// Jump to next cell
-			firstOffset += valueOf.Field(i).Len()
+			startOffset += valueOf.Field(i).Len()
 		}
 	}
 

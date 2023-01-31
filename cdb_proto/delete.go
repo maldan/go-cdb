@@ -1,13 +1,7 @@
 package cdb_proto
 
-import (
-	"fmt"
-	"github.com/maldan/go-cdb/cdb_proto/core"
-	"github.com/maldan/go-cdb/cdb_proto/pack"
-)
-
 func (d *DataTable[T]) Delete(fieldList []string, where func(*T) bool) {
-	mapper := ValueMapper[T]{}
+	/*mapper := ValueMapper[T]{}
 	mapper.Map(d.structInfo, fieldList)
 
 	d.ForEach(func(offset int) bool {
@@ -32,5 +26,5 @@ func (d *DataTable[T]) Delete(fieldList []string, where func(*T) bool) {
 		}
 
 		return true
-	})
+	})*/
 }
