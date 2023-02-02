@@ -4,58 +4,19 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/maldan/go-cmhp/cmhp_file"
+	"reflect"
+	"time"
+	"unsafe"
 )
 
-/*func CreateDynLength(length int) []byte {
-	b := make([]byte, 0, 4)
-	if length <= 0b0111_1111 {
-		return []byte{uint8(length)}
-	}
-	if length <= 0b0111_1111_1111_1111 {
-		z := (length) + (length >> 8)
-		b1 := uint8(z) | 0b1000_0000
-		b2 := uint8(z >> 8)
-		return []byte{b1, b2}
-	}
-	return b
-}
-
-func ReadDynLength(b []byte) (int, int) {
-	if b[0]&0b1000_0000 == 0 {
-		return int(b[0]), 1
-	}
-	if b[0]&0b1000_0000 != 0 {
-		b1 := int(b[0]) & 0b0111_1111
-		b2 := int(b[1]) << 8
-
-		return ((b1 | b2) >> 1) & 0b1111_1111_0111_1111, 2
-	}
-	return 0, 0
-}*/
-
-func Pack[T any](v T) {
-	/*s := make([]byte, 0)
-	S(&s, 0, v)
-	cmhp_print.PrintBytesColored(s, 32, []cmhp_print.ColorRange{
-		{0, 1, cmhp_print.BgRed},
-	})
-	fmt.Printf("%v\n", string(s))
-
-	cmhp_file.Write("aa", s)
-	cmhp_file.Write("bb", v)*/
-	// x, _ := json.Marshal(v)
-	// Traverser(x)
-
+func Pack[T any](v T) []byte {
 	ir := IR{}
 	BuildIR(&ir, v)
-	// cmhp_print.Print(ir)
-
 	cmhp_file.Write("aa", ir.Build())
-
-	Unpack(ir.Build())
+	return ir.Build()
 }
 
-func Unpack(bytes []byte) int {
+func Unpack(bytes []byte, ptr unsafe.Pointer, typeHint any) int {
 	offset := 0
 	tp := bytes[offset]
 	offset += 1
@@ -64,17 +25,28 @@ func Unpack(bytes []byte) int {
 		// Size
 		offset += 2
 
+		// Amount
 		amount := int(bytes[offset])
 		offset += 1
+
+		typeOf := reflect.TypeOf(typeHint)
 
 		for i := 0; i < amount; i++ {
 			fieldLen := int(bytes[offset])
 			offset += 1
-			fieldName := bytes[offset : offset+fieldLen]
-			fmt.Printf("F: %v\n", string(fieldName))
+			fieldName := string(bytes[offset : offset+fieldLen])
 			offset += fieldLen
 
-			offset += Unpack(bytes[offset:])
+			field, _ := typeOf.FieldByName(fieldName)
+
+			if field.Type.Kind() == reflect.Slice {
+				offset += Unpack(bytes[offset:], unsafe.Add(ptr, field.Offset), reflect.ValueOf(typeHint).FieldByName(fieldName).Interface())
+			} else if field.Type.Kind() == reflect.Struct {
+				// fmt.Printf("%v\n", reflect.ValueOf(typeHint).FieldByName(fieldName).Interface())
+				offset += Unpack(bytes[offset:], unsafe.Add(ptr, field.Offset), reflect.ValueOf(typeHint).FieldByName(fieldName).Interface())
+			} else {
+				offset += Unpack(bytes[offset:], unsafe.Add(ptr, field.Offset), typeHint)
+			}
 		}
 	}
 
@@ -82,11 +54,27 @@ func Unpack(bytes []byte) int {
 		// Size
 		offset += 2
 
+		// Amount
 		amount := int(bytes[offset])
 		offset += 2
 
+		typeOf := reflect.TypeOf(typeHint).Elem()
+		typeHint = reflect.New(typeOf).Elem().Interface()
+
+		elemSlice := reflect.MakeSlice(reflect.SliceOf(typeOf), amount, amount)
+		arr := make([]any, amount, amount)
+
 		for i := 0; i < amount; i++ {
-			offset += Unpack(bytes[offset:])
+			offset += Unpack(bytes[offset:], unsafe.Pointer(elemSlice.Index(i).Addr().Pointer()), typeHint)
+			arr[i] = elemSlice.Index(i).Interface()
+		}
+
+		g := elemSlice.Pointer()
+
+		*(*reflect.SliceHeader)(ptr) = reflect.SliceHeader{
+			Data: g,
+			Len:  amount,
+			Cap:  amount,
 		}
 	}
 
@@ -94,21 +82,26 @@ func Unpack(bytes []byte) int {
 		size := int(binary.LittleEndian.Uint16(bytes[offset:]))
 		offset += 2
 		blob := bytes[offset : offset+size]
-		fmt.Printf("V: %v\n", string(blob))
 		offset += size
+		*(*string)(ptr) = string(blob)
 	}
 
 	if tp == TypeTime {
 		size := int(bytes[offset])
 		offset += 1
 		blob := bytes[offset : offset+size]
-		fmt.Printf("V: %v\n", string(blob))
+
+		x, err := time.Parse("2006-01-02T15:04:05.999-07:00", string(blob))
+		*(*time.Time)(ptr) = x
+		if err != nil {
+			fmt.Printf("%v\n", err)
+		}
+
 		offset += size
 	}
 
 	if tp == TypeI32 {
-		v := int(binary.LittleEndian.Uint32(bytes[offset:]))
-		fmt.Printf("V: %v\n", v)
+		*(*int)(ptr) = int(binary.LittleEndian.Uint32(bytes[offset:]))
 		offset += 4
 	}
 

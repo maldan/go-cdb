@@ -1,14 +1,26 @@
 package dson_test
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/maldan/go-cdb/cdb_proto/dson"
 	"testing"
 	"time"
+	"unsafe"
 )
 
 type Record struct {
-	Name string
-	Type string
+	Name  string
+	Type  string
+	Zone  string
+	Gavno Gavno
+}
+
+type Gavno struct {
+	Name int
+	Type int
+	Zone int
+	Has  string
 }
 
 type Test struct {
@@ -27,57 +39,96 @@ type Test struct {
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName"`
 
+	Record Record
+
 	// X
-	RecordList []Record
+	RecordList []Gavno
 }
 
-/*func TestDynLength(t *testing.T) {
-	if len(dson.CreateDynLength(32)) != 1 {
-		t.Fatalf("Fuck")
-	}
-	if len(dson.CreateDynLength(128)) != 2 {
-		t.Fatalf("Fuck")
-	}
-
-	for i := 0; i < 128; i++ {
-		if len(dson.CreateDynLength(i)) != 1 {
-			t.Fatalf("Fuck")
-		}
-		bt := dson.CreateDynLength(i)
-		tb, s := dson.ReadDynLength(bt)
-
-		if s != 1 {
-			t.Fatalf("Fuck size")
-		}
-		if i != tb {
-			t.Fatalf("Fuck value")
-		}
-	}
-
-	for i := 128; i < 65536; i++ {
-		if len(dson.CreateDynLength(i)) != 2 {
-			t.Fatalf("Fuck %v", i)
-		}
-		bt := dson.CreateDynLength(i)
-		tb, s := dson.ReadDynLength(bt)
-
-		if s != 2 {
-			t.Fatalf("Fuck size")
-		}
-		if i != tb {
-			t.Fatalf("Fuck value %v", i)
-		}
-	}
-}*/
+func TestB(t *testing.T) {
+	bytes := dson.Pack(map[string]any{
+		"a": 1,
+	})
+	fmt.Printf("%v\n", bytes)
+}
 
 func TestA(t *testing.T) {
-	dson.Pack(Test{
+	x := 0
+	for i := 0; i < 1024; i++ {
+		bytes := dson.Pack(Test{
+			Email:   "sasageo",
+			Balance: 1,
+			Role:    "123",
+			Record: Record{
+				Name: "X", Type: "Y",
+				Gavno: Gavno{Name: 1, Type: 1},
+			},
+			//Created: time.Now(),
+			RecordList: []Gavno{
+				{Name: 1, Type: 2, Zone: 3},
+				{Name: 4, Type: 5, Zone: 6},
+				{Name: 7, Type: 8, Zone: 9, Has: "XXX"},
+			},
+		})
+
+		tt := Test{}
+		dson.Unpack(bytes, unsafe.Pointer(&tt), tt)
+		x += len(tt.Role)
+	}
+	fmt.Printf("'%v'\n", x)
+	/*	cmhp_print.Print(tt)
+		fmt.Printf("Time: %v\n", tt.Created)
+
+		cmhp_file.Write("tt.json", tt)*/
+}
+
+func BenchmarkZ(b *testing.B) {
+	bytes, _ := json.Marshal(Test{
 		Email:   "sasageo",
 		Balance: 1,
 		Role:    "123",
+		Record: Record{
+			Name: "X", Type: "Y",
+			Gavno: Gavno{Name: 1, Type: 1},
+		},
 		Created: time.Now(),
-		RecordList: []Record{
-			{Name: "X", Type: "Y"},
+		RecordList: []Gavno{
+			{Name: 1, Type: 2, Zone: 3},
+			{Name: 4, Type: 5, Zone: 6},
+			{Name: 7, Type: 8, Zone: 9, Has: "XXX"},
 		},
 	})
+
+	x := 0
+	for i := 0; i < b.N; i++ {
+		tt := Test{}
+		json.Unmarshal(bytes, &tt)
+		x = tt.Balance
+	}
+	fmt.Printf("Time: %v\n", x)
+}
+
+func BenchmarkX(b *testing.B) {
+	bytes := dson.Pack(Test{
+		Email:   "sasageo",
+		Balance: 1,
+		Role:    "123",
+		Record: Record{
+			Name: "X", Type: "Y",
+			Gavno: Gavno{Name: 1, Type: 1},
+		},
+		Created: time.Now(),
+		RecordList: []Gavno{
+			{Name: 1, Type: 2, Zone: 3},
+			{Name: 4, Type: 5, Zone: 6},
+			{Name: 7, Type: 8, Zone: 9, Has: "XXX"},
+		},
+	})
+	x := 0
+	for i := 0; i < b.N; i++ {
+		tt := Test{}
+		dson.Unpack(bytes, unsafe.Pointer(&tt), tt)
+		x = tt.Balance
+	}
+	fmt.Printf("Time: %v\n", x)
 }

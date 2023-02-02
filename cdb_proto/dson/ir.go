@@ -146,7 +146,7 @@ func BuildIR(ir *IR, v any) {
 	if typeOf.Kind() == reflect.Struct {
 		if typeOf.Name() == "Time" {
 			ir.Type = TypeTime
-			ir.Content = []byte(valueOf.Interface().(time.Time).Format("2006-05-04T15:04:05.999-07:00"))
+			ir.Content = []byte(valueOf.Interface().(time.Time).Format("2006-01-02T15:04:05.999-07:00"))
 		} else {
 			ir.Type = TypeStruct
 			for i := 0; i < typeOf.NumField(); i++ {
