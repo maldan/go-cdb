@@ -16,7 +16,7 @@ type SearchResult[T any] struct {
 	table   *DataTable[T]
 }
 
-func (s SearchResult[T]) Unpack() []T {
+func (s *SearchResult[T]) Unpack() []T {
 	out := make([]T, 0)
 
 	for i := 0; i < len(s.Result); i++ {
@@ -28,4 +28,12 @@ func (s SearchResult[T]) Unpack() []T {
 	}
 
 	return out
+}
+
+func (s *Record) Delete() bool {
+	return true
+}
+
+func (s *Record) Update(field string, value any) bool {
+	return true
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/maldan/go-cdb/cdb_goson/core"
+	"strings"
 
 	"reflect"
 	"time"
@@ -181,5 +182,36 @@ func BuildIR(ir *IR, v any) {
 		binary.LittleEndian.PutUint32(b, uint32(valueOf.Int()))
 		ir.Content = b
 		ir.Type = core.Type32
+	}
+}
+
+func NameToId(v any) map[string]int {
+	out := map[string]int{}
+	nameToId(v, &out)
+	return out
+}
+
+func nameToId(v any, out *map[string]int) {
+	typeOf := reflect.TypeOf(v)
+
+	for i := 0; i < typeOf.NumField(); i++ {
+		field := typeOf.Field(i)
+
+		// Skip private
+		if string(field.Name[0]) == strings.ToLower(string(field.Name[0])) {
+			continue
+		}
+
+		_, ok := (*out)[field.Name]
+		if !ok {
+			(*out)[field.Name] = len(*out)
+		}
+
+		if field.Type.Kind() == reflect.Struct {
+			nameToId(reflect.New(field.Type).Elem().Interface(), out)
+		}
+		if field.Type.Kind() == reflect.Slice {
+			nameToId(reflect.New(field.Type.Elem()).Elem().Interface(), out)
+		}
 	}
 }

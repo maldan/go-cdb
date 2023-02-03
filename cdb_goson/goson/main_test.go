@@ -3,6 +3,7 @@ package goson_test
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/maldan/go-cdb/cdb_goson/goson"
 	"github.com/maldan/go-cdb/cdb_proto/dson"
 	"github.com/maldan/go-cmhp/cmhp_file"
 	"github.com/maldan/go-cmhp/cmhp_print"
@@ -25,6 +26,13 @@ type Gavno struct {
 	Has  string
 }
 
+type Sperm struct {
+	Lox    int
+	Urod   int
+	Peedar int
+	Record Record
+}
+
 type Test struct {
 	// Locked
 	Email    string    `json:"email"`
@@ -44,11 +52,16 @@ type Test struct {
 	Record Record
 
 	// X
-	RecordList []Gavno
+	RecordList []Sperm
+}
+
+func TestNameToId(t *testing.T) {
+	mp := goson.NameToId(Test{})
+	fmt.Printf("%+v\n", mp)
 }
 
 func TestMap(t *testing.T) {
-	bytes := dson.Pack(Test{
+	bytes := goson.Marshal(Test{
 		Email:   "sasageo",
 		Role:    "123",
 		Balance: 1,
@@ -57,10 +70,10 @@ func TestMap(t *testing.T) {
 			Gavno: Gavno{Name: 1, Type: 1},
 		},
 		//Created: time.Now(),
-		RecordList: []Gavno{
-			{Name: 1, Type: 2, Zone: 3},
-			{Name: 4, Type: 5, Zone: 6},
-			{Name: 7, Type: 8, Zone: 9, Has: "XXX"},
+		RecordList: []Sperm{
+			{Lox: 1, Urod: 2, Peedar: 3},
+			{Lox: 1, Urod: 2, Peedar: 3},
+			{Lox: 1, Urod: 2, Peedar: 3},
 		},
 	})
 
@@ -79,10 +92,10 @@ func TestMapSpeed(b *testing.T) {
 			Gavno: Gavno{Name: 1, Type: 1},
 		},
 		Created: time.Now(),
-		RecordList: []Gavno{
-			{Name: 1, Type: 2, Zone: 3},
-			{Name: 4, Type: 5, Zone: 6},
-			{Name: 7, Type: 8, Zone: 9, Has: "XXX"},
+		RecordList: []Sperm{
+			{Lox: 1, Urod: 2, Peedar: 3},
+			{Lox: 1, Urod: 2, Peedar: 3},
+			{Lox: 1, Urod: 2, Peedar: 3},
 		},
 	})
 
@@ -112,10 +125,10 @@ func TestPack(t *testing.T) {
 			Gavno: Gavno{Name: 1, Type: 1},
 		},
 		//Created: time.Now(),
-		RecordList: []Gavno{
-			{Name: 1, Type: 2, Zone: 3},
-			{Name: 4, Type: 5, Zone: 6},
-			{Name: 7, Type: 8, Zone: 9, Has: "XXX"},
+		RecordList: []Sperm{
+			{Lox: 1, Urod: 2, Peedar: 3},
+			{Lox: 1, Urod: 2, Peedar: 3},
+			{Lox: 1, Urod: 2, Peedar: 3},
 		},
 	})
 
@@ -125,7 +138,7 @@ func TestPack(t *testing.T) {
 func TestA(t *testing.T) {
 	x := 0
 	for i := 0; i < 1024; i++ {
-		bytes := dson.Pack(Test{
+		bytes := goson.Marshal(Test{
 			Email:   "sasageo",
 			Balance: 1,
 			Role:    "123",
@@ -134,15 +147,14 @@ func TestA(t *testing.T) {
 				Gavno: Gavno{Name: 1, Type: 1},
 			},
 			//Created: time.Now(),
-			RecordList: []Gavno{
-				{Name: 1, Type: 2, Zone: 3},
-				{Name: 4, Type: 5, Zone: 6},
-				{Name: 7, Type: 8, Zone: 9, Has: "XXX"},
+			RecordList: []Sperm{
+				{Lox: 1, Urod: 2, Peedar: 3},
+				{Lox: 1, Urod: 2, Peedar: 3},
+				{Lox: 1, Urod: 2, Peedar: 3},
 			},
 		})
 
-		tt := Test{}
-		dson.UnpackX(bytes, unsafe.Pointer(&tt), tt)
+		tt := goson.Unmarshall[Test](bytes)
 		x += len(tt.Role)
 	}
 	fmt.Printf("'%v'\n", x)
@@ -163,10 +175,10 @@ func BenchmarkPack(b *testing.B) {
 				Gavno: Gavno{Name: 1, Type: 1},
 			},
 			Created: time.Now(),
-			RecordList: []Gavno{
-				{Name: 1, Type: 2, Zone: 3},
-				{Name: 4, Type: 5, Zone: 6},
-				{Name: 7, Type: 8, Zone: 9, Has: "XXX"},
+			RecordList: []Sperm{
+				{Lox: 1, Urod: 2, Peedar: 3},
+				{Lox: 1, Urod: 2, Peedar: 3},
+				{Lox: 1, Urod: 2, Peedar: 3},
 			},
 		})
 		b.SetBytes(int64(len(bytes)))
@@ -184,10 +196,10 @@ func BenchmarkMarshall(b *testing.B) {
 				Gavno: Gavno{Name: 1, Type: 1},
 			},
 			Created: time.Now(),
-			RecordList: []Gavno{
-				{Name: 1, Type: 2, Zone: 3},
-				{Name: 4, Type: 5, Zone: 6},
-				{Name: 7, Type: 8, Zone: 9, Has: "XXX"},
+			RecordList: []Sperm{
+				{Lox: 1, Urod: 2, Peedar: 3},
+				{Lox: 1, Urod: 2, Peedar: 3},
+				{Lox: 1, Urod: 2, Peedar: 3},
 			},
 		})
 		b.SetBytes(int64(len(bytes)))
@@ -204,10 +216,10 @@ func BenchmarkZ(b *testing.B) {
 			Gavno: Gavno{Name: 1, Type: 1},
 		},
 		Created: time.Now(),
-		RecordList: []Gavno{
-			{Name: 1, Type: 2, Zone: 3},
-			{Name: 4, Type: 5, Zone: 6},
-			{Name: 7, Type: 8, Zone: 9, Has: "XXX"},
+		RecordList: []Sperm{
+			{Lox: 1, Urod: 2, Peedar: 3},
+			{Lox: 1, Urod: 2, Peedar: 3},
+			{Lox: 1, Urod: 2, Peedar: 3},
 		},
 	})
 
@@ -230,10 +242,10 @@ func BenchmarkX(b *testing.B) {
 			Gavno: Gavno{Name: 1, Type: 1},
 		},
 		Created: time.Now(),
-		RecordList: []Gavno{
-			{Name: 1, Type: 2, Zone: 3},
-			{Name: 4, Type: 5, Zone: 6},
-			{Name: 7, Type: 8, Zone: 9, Has: "XXX"},
+		RecordList: []Sperm{
+			{Lox: 1, Urod: 2, Peedar: 3},
+			{Lox: 1, Urod: 2, Peedar: 3},
+			{Lox: 1, Urod: 2, Peedar: 3},
 		},
 	})
 	x := 0

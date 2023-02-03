@@ -77,10 +77,13 @@ func TestCrazyQuery(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		tt := time.Now()
-		rs := table.Find([]string{"FirstName"}, func(test *Test) bool {
-			return test.FirstName == "00999999"
-			// return test.FirstName == "00000000"
+		rs := table.FindBy(cdb_goson.ArgsFind[Test]{
+			FieldList: "FirstName",
+			Where: func(test *Test) bool {
+				return test.FirstName == "00999999"
+			},
 		})
+
 		fmt.Printf("T1: %v\n", time.Since(tt))
 		if i == 0 {
 			oo := rs.Unpack()
