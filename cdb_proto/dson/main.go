@@ -3,7 +3,6 @@ package dson
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/maldan/go-cmhp/cmhp_file"
 	"reflect"
 	"time"
 	"unsafe"
@@ -12,11 +11,17 @@ import (
 func Pack[T any](v T) []byte {
 	ir := IR{}
 	BuildIR(&ir, v)
-	cmhp_file.Write("aa", ir.Build())
-	return ir.Build()
+
+	body := ir.Build()
+	fullPack := make([]byte, 0, len(body)+2)
+	fullPack = append(fullPack, 0x12)
+	fullPack = append(fullPack, body...)
+	fullPack = append(fullPack, 0x34)
+
+	return fullPack
 }
 
-func Unpack(bytes []byte, ptr unsafe.Pointer, typeHint any) int {
+func UnpackX(bytes []byte, ptr unsafe.Pointer, typeHint any) int {
 	offset := 0
 	tp := bytes[offset]
 	offset += 1
@@ -40,12 +45,12 @@ func Unpack(bytes []byte, ptr unsafe.Pointer, typeHint any) int {
 			field, _ := typeOf.FieldByName(fieldName)
 
 			if field.Type.Kind() == reflect.Slice {
-				offset += Unpack(bytes[offset:], unsafe.Add(ptr, field.Offset), reflect.ValueOf(typeHint).FieldByName(fieldName).Interface())
+				offset += UnpackX(bytes[offset:], unsafe.Add(ptr, field.Offset), reflect.ValueOf(typeHint).FieldByName(fieldName).Interface())
 			} else if field.Type.Kind() == reflect.Struct {
 				// fmt.Printf("%v\n", reflect.ValueOf(typeHint).FieldByName(fieldName).Interface())
-				offset += Unpack(bytes[offset:], unsafe.Add(ptr, field.Offset), reflect.ValueOf(typeHint).FieldByName(fieldName).Interface())
+				offset += UnpackX(bytes[offset:], unsafe.Add(ptr, field.Offset), reflect.ValueOf(typeHint).FieldByName(fieldName).Interface())
 			} else {
-				offset += Unpack(bytes[offset:], unsafe.Add(ptr, field.Offset), typeHint)
+				offset += UnpackX(bytes[offset:], unsafe.Add(ptr, field.Offset), typeHint)
 			}
 		}
 	}
@@ -65,7 +70,7 @@ func Unpack(bytes []byte, ptr unsafe.Pointer, typeHint any) int {
 		arr := make([]any, amount, amount)
 
 		for i := 0; i < amount; i++ {
-			offset += Unpack(bytes[offset:], unsafe.Pointer(elemSlice.Index(i).Addr().Pointer()), typeHint)
+			offset += UnpackX(bytes[offset:], unsafe.Pointer(elemSlice.Index(i).Addr().Pointer()), typeHint)
 			arr[i] = elemSlice.Index(i).Interface()
 		}
 
