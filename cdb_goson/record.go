@@ -1,0 +1,27 @@
+package cdb_goson
+
+import "github.com/maldan/go-cdb/cdb_proto/pack"
+
+type Record struct {
+	offset int
+	size   int
+}
+
+type SearchResult[T any] struct {
+	IsFound bool
+	Count   int
+	Result  []Record
+	table   *DataTable[T]
+}
+
+func (s SearchResult[T]) Unpack() []T {
+	out := make([]T, 0)
+
+	for i := 0; i < len(s.Result); i++ {
+		r := s.Result[i]
+		v, _ := pack.Unpack[T](s.table.structInfo, s.table.mem[r.offset:r.offset+r.size])
+		out = append(out, v)
+	}
+
+	return out
+}

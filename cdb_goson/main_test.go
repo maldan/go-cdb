@@ -1,7 +1,8 @@
-package cdb_proto_test
+package cdb_goson_test
 
 import (
 	"fmt"
+	"github.com/maldan/go-cdb/cdb_goson"
 	"github.com/maldan/go-cdb/cdb_proto"
 	"github.com/maldan/go-cdb/cdb_proto/core"
 	"github.com/maldan/go-cmhp/cmhp_print"
@@ -32,7 +33,7 @@ func TestMy1(t *testing.T) {
 }
 
 func TestMyWrite(t *testing.T) {
-	table := cdb_proto.New[Test]("../db/test")
+	table := cdb_goson.New[Test]("../db/test")
 
 	tt := time.Now()
 	for i := 0; i < 1_000_000; i++ {
@@ -70,7 +71,7 @@ func TestSimpleQuery(t *testing.T) {
 }
 
 func TestCrazyQuery(t *testing.T) {
-	table := cdb_proto.New[Test]("../db/test")
+	table := cdb_goson.New[Test]("../db/test")
 
 	for i := 0; i < 10; i++ {
 		tt := time.Now()
