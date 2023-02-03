@@ -110,6 +110,14 @@ func (d *DataTable[T]) readHeader() {
 	d.structInfo.FieldCount = amount
 }
 
+func unwrap(bytes []byte) []byte {
+	if bytes[0] != 0x12 {
+		panic("non package")
+	}
+	hh := core.RecordStart + core.RecordSize + core.RecordFlags
+	return bytes[hh : len(bytes)-1]
+}
+
 func wrap(bytes []byte) []byte {
 	fullSize := len(bytes) + core.RecordStart + core.RecordSize + core.RecordFlags + core.RecordEnd
 	fullPackage := make([]byte, 0, fullSize)

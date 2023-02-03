@@ -39,8 +39,8 @@ func TestMyWrite(t *testing.T) {
 	for i := 0; i < 1_000_000; i++ {
 		table.Insert(Test{
 			FirstName: fmt.Sprintf("%08d", i),
-			LastName:  "00000000",
-			Phone:     "11111111",
+			LastName:  fmt.Sprintf("%08d", i),
+			Phone:     fmt.Sprintf("%08d", i),
 			/*Sex:       "00000000",
 			Rock:      "00000000",
 			Gas:       "00000000",
@@ -71,15 +71,18 @@ func TestSimpleQuery(t *testing.T) {
 }
 
 func TestCrazyQuery(t *testing.T) {
+	// start at 240
+	// second at 78
 	table := cdb_goson.New[Test]("../db/test")
 
 	for i := 0; i < 10; i++ {
 		tt := time.Now()
 		rs := table.Find([]string{"FirstName"}, func(test *Test) bool {
 			return test.FirstName == "00999999"
+			// return test.FirstName == "00000000"
 		})
 		fmt.Printf("T1: %v\n", time.Since(tt))
-		if i == 9 {
+		if i == 0 {
 			oo := rs.Unpack()
 			cmhp_print.Print(oo)
 		}

@@ -13,17 +13,19 @@ func Marshal[T any](v T) []byte {
 	ir := IR{}
 	BuildIR(&ir, v)
 
-	body := ir.Build()
-	/*fullPack := make([]byte, 0, len(body)+2)
-	fullPack = append(fullPack, 0x12)
-	fullPack = append(fullPack, body...)
-	fullPack = append(fullPack, 0x34)*/
-
-	return body
+	return ir.Build()
 }
 
-func UnpackX(bytes []byte, ptr unsafe.Pointer, typeHint any) int {
+func Unmarshall[T any](bytes []byte) T {
+	t := new(T)
+	unpack(bytes, unsafe.Pointer(t), *t)
+	return *t
+}
+
+func unpack(bytes []byte, ptr unsafe.Pointer, typeHint any) int {
 	offset := 0
+
+	// Read type
 	tp := bytes[offset]
 	offset += 1
 
@@ -38,20 +40,25 @@ func UnpackX(bytes []byte, ptr unsafe.Pointer, typeHint any) int {
 		typeOf := reflect.TypeOf(typeHint)
 
 		for i := 0; i < amount; i++ {
+			// field type
+			// offset += 1
+
+			// field length
 			fieldLen := int(bytes[offset])
 			offset += 1
+
+			// field name
 			fieldName := string(bytes[offset : offset+fieldLen])
 			offset += fieldLen
 
 			field, _ := typeOf.FieldByName(fieldName)
 
 			if field.Type.Kind() == reflect.Slice {
-				offset += UnpackX(bytes[offset:], unsafe.Add(ptr, field.Offset), reflect.ValueOf(typeHint).FieldByName(fieldName).Interface())
+				offset += unpack(bytes[offset:], unsafe.Add(ptr, field.Offset), reflect.ValueOf(typeHint).FieldByName(fieldName).Interface())
 			} else if field.Type.Kind() == reflect.Struct {
-				// fmt.Printf("%v\n", reflect.ValueOf(typeHint).FieldByName(fieldName).Interface())
-				offset += UnpackX(bytes[offset:], unsafe.Add(ptr, field.Offset), reflect.ValueOf(typeHint).FieldByName(fieldName).Interface())
+				offset += unpack(bytes[offset:], unsafe.Add(ptr, field.Offset), reflect.ValueOf(typeHint).FieldByName(fieldName).Interface())
 			} else {
-				offset += UnpackX(bytes[offset:], unsafe.Add(ptr, field.Offset), typeHint)
+				offset += unpack(bytes[offset:], unsafe.Add(ptr, field.Offset), typeHint)
 			}
 		}
 	}
@@ -71,7 +78,7 @@ func UnpackX(bytes []byte, ptr unsafe.Pointer, typeHint any) int {
 		arr := make([]any, amount, amount)
 
 		for i := 0; i < amount; i++ {
-			offset += UnpackX(bytes[offset:], unsafe.Pointer(elemSlice.Index(i).Addr().Pointer()), typeHint)
+			offset += unpack(bytes[offset:], unsafe.Pointer(elemSlice.Index(i).Addr().Pointer()), typeHint)
 			arr[i] = elemSlice.Index(i).Interface()
 		}
 

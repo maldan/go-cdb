@@ -34,7 +34,7 @@ func (d *DataTable[T]) Find(fieldList []string, where func(*T) bool) SearchResul
 	mapper := goson.NewMapper[T]()
 
 	d.ForEach(func(offset int, size int) bool {
-		mapper.Map(d.mem[offset+core.RecordStart+core.RecordSize+core.RecordFlags:], fieldList, false)
+		mapper.Map(d.mem[offset+core.RecordStart+core.RecordSize+core.RecordFlags:], fieldList)
 
 		if where(&mapper.Container) {
 			searchResult.table = d
