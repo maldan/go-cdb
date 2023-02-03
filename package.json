@@ -1,6 +1,6 @@
 {
   "name": "@maldan/go-cdb",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Go Chunk Data Base",
   "main": "index.js",
   "keywords": [],
