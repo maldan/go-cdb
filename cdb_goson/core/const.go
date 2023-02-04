@@ -1,11 +1,6 @@
 package core
 
-const HeaderSize = 1024
-
-const TokenString = 0
-const TokenOp = 1
-const TokenIdentifier = 2
-const TokenNumber = 3
+const HeaderSize = 2048
 
 // RecordStart is 1 bytes 0x12 of header for each record
 const RecordStart = 1
@@ -18,9 +13,6 @@ const RecordFlags = 1
 
 // RecordEnd is 1 bytes 0x34 of header for each record
 const RecordEnd = 1
-
-// RecordLenOff is 8 bytes size for offset and length for each field of struct
-const RecordLenOff = 8
 
 const RecordStartMark = 0x12
 const RecordEndMark = 0x34

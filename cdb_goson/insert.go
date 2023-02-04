@@ -6,7 +6,7 @@ import (
 )
 
 func (d *DataTable[T]) Insert(v T) {
-	bytes := goson.Marshal(v)
+	bytes := goson.Marshal(v, d.Header.NameToId)
 
 	bytes = wrap(bytes)
 

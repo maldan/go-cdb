@@ -36,7 +36,7 @@ func TestMyWrite(t *testing.T) {
 	table := cdb_goson.New[Test]("../db/test")
 
 	tt := time.Now()
-	for i := 0; i < 1_000_000; i++ {
+	for i := 0; i < 1; i++ {
 		table.Insert(Test{
 			FirstName: fmt.Sprintf("%08d", i),
 			LastName:  fmt.Sprintf("%08d", i),
@@ -73,6 +73,7 @@ func TestSimpleQuery(t *testing.T) {
 func TestCrazyQuery(t *testing.T) {
 	// start at 240
 	// second at 78
+	// third 30
 	table := cdb_goson.New[Test]("../db/test")
 
 	for i := 0; i < 10; i++ {

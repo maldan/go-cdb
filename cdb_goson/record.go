@@ -23,7 +23,7 @@ func (s *SearchResult[T]) Unpack() []T {
 		r := s.Result[i]
 
 		realData := unwrap(s.table.mem[r.offset : r.offset+r.size])
-		v := goson.Unmarshall[T](realData)
+		v := goson.Unmarshall[T](realData, s.table.Header.IdToName)
 		out = append(out, v)
 	}
 

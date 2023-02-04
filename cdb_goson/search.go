@@ -42,16 +42,20 @@ func (d *DataTable[T]) FindBy(args ArgsFind[T]) SearchResult[T] {
 	searchResult := SearchResult[T]{}
 
 	// Create mapper for capturing values from bytes
-	mapper := goson.NewMapper[T]()
+	mapper := goson.NewMapper[T](d.Header.NameToId)
 
 	// Field list
 	fieldList := cmhp_slice.Map(strings.Split(args.FieldList, ","), func(t string) string {
 		return strings.Trim(t, " ")
 	})
+	fieldIdList := make([]uint8, 0)
+	for _, v := range fieldList {
+		fieldIdList = append(fieldIdList, d.Header.NameToId[v])
+	}
 
 	// Go through each record
 	d.ForEach(func(offset int, size int) bool {
-		mapper.Map(d.mem[offset+core.RecordStart+core.RecordSize+core.RecordFlags:], fieldList)
+		mapper.Map(d.mem[offset+core.RecordStart+core.RecordSize+core.RecordFlags:], fieldIdList)
 
 		// Collect values
 		if args.Where(&mapper.Container) {

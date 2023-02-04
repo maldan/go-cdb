@@ -61,6 +61,7 @@ func TestNameToId(t *testing.T) {
 }
 
 func TestMap(t *testing.T) {
+	nameToId := goson.NameToId(Test{})
 	bytes := goson.Marshal(Test{
 		Email:   "sasageo",
 		Role:    "123",
@@ -75,7 +76,7 @@ func TestMap(t *testing.T) {
 			{Lox: 1, Urod: 2, Peedar: 3},
 			{Lox: 1, Urod: 2, Peedar: 3},
 		},
-	})
+	}, nameToId)
 
 	mapper := dson.NewMapper[Test]()
 	mapper.Map(bytes[1:], []string{"Email"}, false)
@@ -116,7 +117,9 @@ func TestB(t *testing.T) {
 }
 
 func TestPack(t *testing.T) {
-	bytes := dson.Pack(Test{
+	nameToId := goson.NameToId(Test{})
+
+	bytes := goson.Marshal(Test{
 		Email:   "sasageo",
 		Balance: 1,
 		Role:    "123",
@@ -124,18 +127,45 @@ func TestPack(t *testing.T) {
 			Name: "X", Type: "Y",
 			Gavno: Gavno{Name: 1, Type: 1},
 		},
-		//Created: time.Now(),
+		Created: time.Now(),
 		RecordList: []Sperm{
 			{Lox: 1, Urod: 2, Peedar: 3},
 			{Lox: 1, Urod: 2, Peedar: 3},
 			{Lox: 1, Urod: 2, Peedar: 3},
 		},
-	})
+	}, nameToId)
 
 	cmhp_file.Write("a.bin", bytes)
 }
 
-func TestA(t *testing.T) {
+func TestUnpack(t *testing.T) {
+	nameToId := goson.NameToId(Test{})
+
+	bytes := goson.Marshal(Test{
+		Email:   "sasageo",
+		Balance: 1,
+		Role:    "123",
+		Record: Record{
+			Name: "X", Type: "Y",
+			Gavno: Gavno{Name: 1, Type: 1},
+		},
+		Created: time.Now(),
+		RecordList: []Sperm{
+			{Lox: 1, Urod: 2, Peedar: 3, Record: Record{
+				Name: "EE", Type: "AA",
+				Gavno: Gavno{Name: 228, Type: 1488},
+			}},
+			{Lox: 1, Urod: 2, Peedar: 3},
+			{Lox: 1, Urod: 2, Peedar: 3},
+		},
+	}, nameToId)
+
+	idToName := goson.IdToName(nameToId)
+	out := goson.Unmarshall[Test](bytes, idToName)
+	cmhp_print.Print(out)
+}
+
+/*func TestA(t *testing.T) {
 	x := 0
 	for i := 0; i < 1024; i++ {
 		bytes := goson.Marshal(Test{
@@ -158,11 +188,7 @@ func TestA(t *testing.T) {
 		x += len(tt.Role)
 	}
 	fmt.Printf("'%v'\n", x)
-	/*	cmhp_print.Print(tt)
-		fmt.Printf("Time: %v\n", tt.Created)
-
-		cmhp_file.Write("tt.json", tt)*/
-}
+}*/
 
 func BenchmarkPack(b *testing.B) {
 	for i := 0; i < b.N; i++ {

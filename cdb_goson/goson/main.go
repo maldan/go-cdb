@@ -4,25 +4,26 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/maldan/go-cdb/cdb_goson/core"
+	"log"
 	"reflect"
 	"time"
 	"unsafe"
 )
 
-func Marshal[T any](v T) []byte {
+func Marshal[T any](v T, nameToId core.NameToId) []byte {
 	ir := IR{}
-	BuildIR(&ir, v)
+	BuildIR(&ir, v, nameToId)
 
 	return ir.Build()
 }
 
-func Unmarshall[T any](bytes []byte) T {
+func Unmarshall[T any](bytes []byte, idToName core.IdToName) T {
 	t := new(T)
-	unpack(bytes, unsafe.Pointer(t), *t)
+	unpack(bytes, unsafe.Pointer(t), *t, idToName)
 	return *t
 }
 
-func unpack(bytes []byte, ptr unsafe.Pointer, typeHint any) int {
+func unpack(bytes []byte, ptr unsafe.Pointer, typeHint any, idToName core.IdToName) int {
 	offset := 0
 
 	// Read type
@@ -40,25 +41,37 @@ func unpack(bytes []byte, ptr unsafe.Pointer, typeHint any) int {
 		typeOf := reflect.TypeOf(typeHint)
 
 		for i := 0; i < amount; i++ {
-			// field type
-			// offset += 1
-
 			// field length
-			fieldLen := int(bytes[offset])
-			offset += 1
+			//fieldLen := int(bytes[offset])
+			//offset += 1
 
 			// field name
-			fieldName := string(bytes[offset : offset+fieldLen])
-			offset += fieldLen
+			fieldName, ok := idToName[bytes[offset]]
+			if !ok {
+				log.Fatalf("field for id %v not found", bytes[offset])
+			}
+			offset += 1
+			//fieldName := string(bytes[offset : offset+fieldLen])
+			//offset += fieldLen
 
 			field, _ := typeOf.FieldByName(fieldName)
 
 			if field.Type.Kind() == reflect.Slice {
-				offset += unpack(bytes[offset:], unsafe.Add(ptr, field.Offset), reflect.ValueOf(typeHint).FieldByName(fieldName).Interface())
+				offset += unpack(
+					bytes[offset:],
+					unsafe.Add(ptr, field.Offset),
+					reflect.ValueOf(typeHint).FieldByName(fieldName).Interface(),
+					idToName,
+				)
 			} else if field.Type.Kind() == reflect.Struct {
-				offset += unpack(bytes[offset:], unsafe.Add(ptr, field.Offset), reflect.ValueOf(typeHint).FieldByName(fieldName).Interface())
+				offset += unpack(
+					bytes[offset:],
+					unsafe.Add(ptr, field.Offset),
+					reflect.ValueOf(typeHint).FieldByName(fieldName).Interface(),
+					idToName,
+				)
 			} else {
-				offset += unpack(bytes[offset:], unsafe.Add(ptr, field.Offset), typeHint)
+				offset += unpack(bytes[offset:], unsafe.Add(ptr, field.Offset), typeHint, idToName)
 			}
 		}
 	}
@@ -78,7 +91,12 @@ func unpack(bytes []byte, ptr unsafe.Pointer, typeHint any) int {
 		arr := make([]any, amount, amount)
 
 		for i := 0; i < amount; i++ {
-			offset += unpack(bytes[offset:], unsafe.Pointer(elemSlice.Index(i).Addr().Pointer()), typeHint)
+			offset += unpack(
+				bytes[offset:],
+				unsafe.Pointer(elemSlice.Index(i).Addr().Pointer()),
+				typeHint,
+				idToName,
+			)
 			arr[i] = elemSlice.Index(i).Interface()
 		}
 
