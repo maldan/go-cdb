@@ -6,6 +6,10 @@ import (
 )
 
 func (d *DataTable[T]) Insert(v T) {
+	d.rwLock.Lock()
+	defer d.rwLock.Unlock()
+	defer d.remap()
+
 	bytes := goson.Marshal(v, d.Header.NameToId)
 
 	bytes = wrap(bytes)

@@ -2,8 +2,8 @@ package cdb_goson
 
 import (
 	"encoding/binary"
+	"github.com/maldan/go-cdb/cdb_goson/core"
 	"github.com/maldan/go-cdb/cdb_goson/goson"
-	"github.com/maldan/go-cdb/cdb_proto/core"
 	"github.com/maldan/go-cmhp/cmhp_slice"
 	"strings"
 )
@@ -60,7 +60,12 @@ func (d *DataTable[T]) FindBy(args ArgsFind[T]) SearchResult[T] {
 		// Collect values
 		if args.Where(&mapper.Container) {
 			searchResult.table = d
-			searchResult.Result = append(searchResult.Result, Record{offset: offset, size: size})
+			searchResult.IsFound = true
+			searchResult.Result = append(searchResult.Result, Record[T]{
+				offset: offset,
+				size:   size,
+				table:  d,
+			})
 
 			// Check limit
 			if args.Limit > 0 && len(searchResult.Result) >= args.Limit {

@@ -5,6 +5,7 @@ import (
 	"github.com/maldan/go-cdb/cdb_goson"
 	"github.com/maldan/go-cdb/cdb_proto"
 	"github.com/maldan/go-cdb/cdb_proto/core"
+	"github.com/maldan/go-cmhp/cmhp_crypto"
 	"github.com/maldan/go-cmhp/cmhp_print"
 	"testing"
 	"time"
@@ -29,6 +30,27 @@ func TestMy1(t *testing.T) {
 	s := "сука"
 	for i := 0; i < len(s); i++ {
 		fmt.Printf("%v\n", string(s[i]))
+	}
+}
+
+func TestWriteAndRead(t *testing.T) {
+	table := cdb_goson.New[Test]("../db/test")
+
+	rndName := cmhp_crypto.UID(8)
+
+	table.Insert(Test{
+		FirstName: fmt.Sprintf(rndName),
+	})
+
+	rs := table.FindBy(cdb_goson.ArgsFind[Test]{
+		FieldList: "FirstName",
+		Where: func(test *Test) bool {
+			return test.FirstName == rndName
+		},
+	})
+
+	if !rs.IsFound {
+		t.Fatalf("fuck")
 	}
 }
 
@@ -93,12 +115,70 @@ func TestCrazyQuery(t *testing.T) {
 	}
 }
 
-func TestDelete(t *testing.T) {
-	table := cdb_proto.New[Test]("../db/test")
+func TestUpdate(t *testing.T) {
+	table := cdb_goson.New[Test]("../db/test")
 
-	table.Delete([]string{"FirstName"}, func(test *Test) bool {
-		return test.FirstName == "00000000"
+	rndName := cmhp_crypto.UID(8)
+
+	// Create
+	table.Insert(Test{
+		FirstName: rndName,
 	})
+
+	// Find
+	rs := table.FindBy(cdb_goson.ArgsFind[Test]{
+		FieldList: "FirstName",
+		Where: func(test *Test) bool {
+			return test.FirstName == rndName
+		},
+	})
+	if !rs.IsFound {
+		t.Fatalf("fuck")
+	}
+
+	// Update
+	rs.Result[0].Update(map[string]any{
+		"LastName": "gay",
+		"x":        "gay",
+	})
+}
+
+func TestDelete(t *testing.T) {
+	table := cdb_goson.New[Test]("../db/test")
+
+	rndName := cmhp_crypto.UID(8)
+
+	// Create
+	table.Insert(Test{
+		FirstName: rndName,
+	})
+
+	// Find
+	rs := table.FindBy(cdb_goson.ArgsFind[Test]{
+		FieldList: "FirstName",
+		Where: func(test *Test) bool {
+			return test.FirstName == rndName
+		},
+	})
+
+	if !rs.IsFound {
+		t.Fatalf("fuck")
+	}
+
+	// Delete
+	rs.Result[0].Delete()
+
+	// Find again
+	rs = table.FindBy(cdb_goson.ArgsFind[Test]{
+		FieldList: "FirstName",
+		Where: func(test *Test) bool {
+			return test.FirstName == rndName
+		},
+	})
+
+	if rs.IsFound {
+		t.Fatalf("fuck")
+	}
 }
 
 func TestX3(t *testing.T) {

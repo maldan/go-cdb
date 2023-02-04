@@ -52,6 +52,10 @@ func (d *DataTable[T]) remap() {
 }
 
 func (d *DataTable[T]) readHeader() {
+	// Thread safe operation
+	d.rwLock.RLock()
+	defer d.rwLock.RUnlock()
+
 	d.Header.FromBytes(d.mem)
 
 	// Get field names from struct
@@ -76,6 +80,10 @@ func (d *DataTable[T]) readHeader() {
 }
 
 func (d *DataTable[T]) writeHeader() {
+	// Thread safe operation
+	d.rwLock.Lock()
+	defer d.rwLock.Unlock()
+
 	_, err := d.file.WriteAt(d.Header.ToBytes(), 0)
 	if err != nil {
 		panic(err)
