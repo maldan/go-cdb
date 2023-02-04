@@ -5,6 +5,16 @@ import (
 	"github.com/maldan/go-cdb/cdb_goson/goson"
 )
 
+func (d *DataTable[T]) GenerateId() uint64 {
+	d.rwLock.Lock()
+	id := uint64(0)
+	d.Header.AutoIncrement += 1
+	id = d.Header.AutoIncrement
+	d.rwLock.Unlock()
+	d.writeAI()
+	return id
+}
+
 func (d *DataTable[T]) Insert(v T) {
 	d.rwLock.Lock()
 	defer d.rwLock.Unlock()

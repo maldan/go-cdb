@@ -1,6 +1,7 @@
 package cdb_goson
 
 import (
+	"encoding/binary"
 	"errors"
 	"github.com/edsrzf/mmap-go"
 	"github.com/maldan/go-cdb/cdb_goson/core"
@@ -85,6 +86,21 @@ func (d *DataTable[T]) writeHeader() {
 	defer d.rwLock.Unlock()
 
 	_, err := d.file.WriteAt(d.Header.ToBytes(), 0)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (d *DataTable[T]) writeAI() {
+	// Thread safe operation
+	d.rwLock.Lock()
+	defer d.rwLock.Unlock()
+
+	// Prepare ai
+	ai := []byte{0, 0, 0, 0, 0, 0, 0, 0}
+	binary.LittleEndian.PutUint64(ai, d.Header.AutoIncrement)
+
+	_, err := d.file.WriteAt(ai, 9)
 	if err != nil {
 		panic(err)
 	}

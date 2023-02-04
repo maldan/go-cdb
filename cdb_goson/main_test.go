@@ -12,9 +12,10 @@ import (
 )
 
 type Test struct {
-	FirstName string `json:"firstName" id:"0"`
-	LastName  string `json:"lastName" id:"1" len:"32"`
-	Phone     string `json:"phone" id:"2" len:"64"`
+	Id        int    `json:"id"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName" len:"32"`
+	Phone     string `json:"phone" len:"64"`
 	/*Sex       string `json:"sex" id:"3" len:"64"`
 	Rock      string `json:"rock" id:"4" len:"64"`
 	Gas       string `json:"gas" id:"5" len:"64"`
@@ -58,8 +59,9 @@ func TestMyWrite(t *testing.T) {
 	table := cdb_goson.New[Test]("../db/test")
 
 	tt := time.Now()
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 1000; i++ {
 		table.Insert(Test{
+			Id:        int(table.GenerateId()),
 			FirstName: fmt.Sprintf("%08d", i),
 			LastName:  fmt.Sprintf("%08d", i),
 			Phone:     fmt.Sprintf("%08d", i),
@@ -103,7 +105,8 @@ func TestCrazyQuery(t *testing.T) {
 		rs := table.FindBy(cdb_goson.ArgsFind[Test]{
 			FieldList: "FirstName",
 			Where: func(test *Test) bool {
-				return test.FirstName == "00999999"
+				return true
+				//return test.FirstName == "00000000"
 			},
 		})
 

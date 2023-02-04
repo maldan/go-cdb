@@ -96,11 +96,16 @@ func (h *Header) ToBytes() []byte {
 	offset += 8
 
 	// Version
-	bytes[offset] = 1
+	if h.Version == 0 {
+		h.Version = 1
+	}
+	bytes[offset] = h.Version
 	offset += 1
 
 	// AI and Total
+	binary.LittleEndian.PutUint64(bytes[offset:], h.AutoIncrement)
 	offset += 8
+	binary.LittleEndian.PutUint64(bytes[offset:], h.TotalRecords)
 	offset += 8
 
 	// Num of fields
